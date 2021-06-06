@@ -11,10 +11,14 @@ use pocketmine\plugin\PluginBase;
 
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
-	private ProviderInterface $provider;
+	private static ProviderInterface $provider;
 
 	public static function getInstance() : self {
 		return self::$instance;
+	}
+
+	public static function getProvider() : ProviderInterface {
+		return self::$provider;
 	}
 
 	public function onEnable() : void {
@@ -24,10 +28,6 @@ class EconomyLoader extends PluginBase {
 		require_once $autoload;
 		$this->saveResource('db_config.json', true);
 		ThinkPHPTask::$config = file_get_contents($this->getDataFolder() . 'db_config.json');
-		$this->provider = new MySQLProvider();
-	}
-
-	public function getProvider() : ProviderInterface {
-		return $this->provider;
+		self::$provider = new MySQLProvider();
 	}
 }

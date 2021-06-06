@@ -1,13 +1,14 @@
 {
-    "name": "blackjack200/economylib",
-    "type": "library",
-    "authors": [
-        {
-            "name": "Blackjack200",
-            "email": "lx826444126@gmail.com"
-        }
-    ],
-    "require": {
-        "topthink/think-orm": "^2.0"
+  "name": "blackjack200/economylib",
+  "type": "library",
+  "authors": [
+    {
+      "name": "Blackjack200",
+      "email": "lx826444126@gmail.com"
     }
+  ],
+  "require": {
+    "topthink/think-orm": "^2.0",
+    "ext-json": "*"
+  }
 }

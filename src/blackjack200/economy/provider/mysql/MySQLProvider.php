@@ -33,10 +33,9 @@ class MySQLProvider implements ProviderInterface {
 			if (!Player::isValidUserName($name)) {
 				return false;
 			}
-			$ret = $db->table('player_info')->limit(1)
+			return $db->table('player_info')->limit(1)
 				->where('player_name', $name)
 				->findOrEmpty();
-			return $ret;
 		});
 		return $promise;
 	}
@@ -94,6 +93,60 @@ class MySQLProvider implements ProviderInterface {
 				}
 			}
 			return false;
+		});
+		return $promise;
+	}
+
+	public function addCurrency(string $name) : IPromise {
+		$promise = new Promise();
+		$promise->then(static function (DbManager $db) use ($name) : bool {
+			$cfg = $db->getConfig();
+			$dbName = $cfg['connections'][$cfg['default']]['database'];
+			$has = !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
+				['player_info', $dbName, $name]
+			));
+			if ($has) {
+				return false;
+			}
+			return $db->execute(
+					sprintf(
+						'alter table player_info add column `%s` int not null default 0',
+						addslashes($name)
+					)
+				) === 0;
+		});
+		return $promise;
+	}
+
+	public function removeCurrency(string $name) : IPromise {
+		$promise = new Promise();
+		$promise->then(static function (DbManager $db) use ($name) : bool {
+			$cfg = $db->getConfig();
+			$dbName = $cfg['connections'][$cfg['default']]['database'];
+			$notFound = empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
+				['player_info', $dbName, $name]
+			));
+			if ($notFound) {
+				return false;
+			}
+			return $db->execute(
+					sprintf(
+						'alter table player_info drop column `%s`',
+						addslashes($name)
+					)
+				) === 0;
+		});
+		return $promise;
+	}
+
+	public function hasCurrency(string $name) : IPromise {
+		$promise = new Promise();
+		$promise->then(static function (DbManager $db) use ($name) : bool {
+			$cfg = $db->getConfig();
+			$dbName = $cfg['connections'][$cfg['default']]['database'];
+			return !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA=? && COLUMN_NAME=?;',
+				['player_info', $dbName, $name]
+			));
 		});
 		return $promise;
 	}
