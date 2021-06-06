@@ -27,7 +27,7 @@ class ThinkPHPTask extends PromiseAsyncTask {
 				break;
 			}
 		}
-		$db->getConnection()->close();
+		$db->close();
 	}
 
 	public function log(?string $val) : void {

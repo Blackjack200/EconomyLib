@@ -81,7 +81,7 @@ class MySQLProvider implements ProviderInterface {
 			}
 			//CAS
 			$old = array_pop($old);
-			$retry = 16;
+			$retry = 64;
 			while ($retry-- > 0) {
 				if ($db->table('player_info')
 						->where('player_name', $name)
