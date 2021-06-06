@@ -73,16 +73,17 @@ class MySQLProvider implements ProviderInterface {
 	public function add(string $name, string $type, int $val) : IPromise {
 		$promise = new Promise();
 		$promise->then(static function (DbManager $db) use ($val, $type, $name) {
-			$old = $db->table('player_info')
-				->where('player_name', $name)->limit(1)
-				->column($type);
-			if (empty($old)) {
-				return false;
-			}
-			//CAS
-			$old = array_pop($old);
-			$retry = 64;
+			$retry = 1 << 8;
 			while ($retry-- > 0) {
+				$old = $db->table('player_info')
+					->where('player_name', $name)->limit(1)
+					->column($type);
+				if (empty($old)) {
+					return false;
+				}
+				//CAS
+				$old = array_pop($old);
+
 				if ($db->table('player_info')
 						->where('player_name', $name)
 						->where($type, $old)
