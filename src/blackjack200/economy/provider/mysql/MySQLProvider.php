@@ -27,6 +27,20 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
+	public function getALL(string $name) : IPromise {
+		$promise = new Promise();
+		$promise->then(static function (DbManager $db) use ($name) {
+			if (!Player::isValidUserName($name)) {
+				return false;
+			}
+			$ret = $db->table('player_info')->limit(1)
+				->where('player_name', $name)
+				->findOrEmpty();
+			return $ret;
+		});
+		return $promise;
+	}
+
 	public function start(IPromise $promise) : void {
 		Promises::start($promise, ThinkPHPTask::class);
 	}

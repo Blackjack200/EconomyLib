@@ -11,9 +11,13 @@ interface ProviderInterface {
 
 	public function get(string $name, string $type) : IPromise;
 
+	public function getALL(string $name) : IPromise;
+
 	public function set(string $name, string $type, int $val) : IPromise;
 
 	public function add(string $name, string $type, int $val) : IPromise;
+
+	public function start(IPromise $promise) : void;
 
 	//public function addCurrency(string $name) : IPromise;
 
