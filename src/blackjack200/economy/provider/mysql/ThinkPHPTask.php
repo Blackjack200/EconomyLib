@@ -12,12 +12,6 @@ class ThinkPHPTask extends PromiseAsyncTask {
 	public static string $autoload;
 	public static string $config;
 
-	public function log(?string $val) : void {
-		if ($val !== null) {
-			MainLogger::getLogger()->debug($val);
-		}
-	}
-
 	public function onRun() : void {
 		require_once self::$autoload;
 		$db = new DbManager();
@@ -32,6 +26,13 @@ class ThinkPHPTask extends PromiseAsyncTask {
 			if ($this->ret === self::EXECUTE_DROP) {
 				break;
 			}
+		}
+		$db->getConnection()->close();
+	}
+
+	public function log(?string $val) : void {
+		if ($val !== null) {
+			MainLogger::getLogger()->debug($val);
 		}
 	}
 }
