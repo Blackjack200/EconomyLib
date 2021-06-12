@@ -13,13 +13,20 @@ use think\db\exception\DataNotFoundException;
 use think\DbManager;
 
 class MySQLProvider implements ProviderInterface {
+	protected string $table;
+
+	public function __construct(string $table) {
+		$this->table = $table;
+	}
+
 	public function get(string $name, string $type) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($type, $name) {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $type, $name) {
 			if (!Player::isValidUserName($name)) {
 				return false;
 			}
-			$ret = $db->table('player_info')->limit(1)
+			$ret = $db->table($table)->limit(1)
 				->where('player_name', $name)
 				->column($type);
 			return array_pop($ret);
@@ -29,11 +36,12 @@ class MySQLProvider implements ProviderInterface {
 
 	public function getALL(string $name) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($name) {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $name) {
 			if (!Player::isValidUserName($name)) {
 				return false;
 			}
-			return $db->table('player_info')->limit(1)
+			return $db->table($table)->limit(1)
 				->where('player_name', $name)
 				->findOrEmpty();
 		});
@@ -46,12 +54,13 @@ class MySQLProvider implements ProviderInterface {
 
 	public function set(string $name, string $type, int $val) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($val, $type, $name) : bool {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $val, $type, $name) : bool {
 			try {
-				$db->table('player_info')->where('player_name', $name)->findOrFail();
-				return $db->table('player_info')->where('player_name', $name)->update([$type => $val]);
+				$db->table($table)->where('player_name', $name)->findOrFail();
+				return $db->table($table)->where('player_name', $name)->update([$type => $val]);
 			} catch (DataNotFoundException $ex) {
-				return (bool) $db->table('player_info')->insert(
+				return (bool) $db->table($table)->insert(
 					['player_name' => $name, $type => $val]
 				);
 			}
@@ -61,8 +70,9 @@ class MySQLProvider implements ProviderInterface {
 
 	public function initialize(string $name) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($name) : bool {
-			return $db->table('player_info')->extra('IGNORE')->insert(
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $name) : bool {
+			return $db->table($table)->extra('IGNORE')->insert(
 				['player_name' => $name]
 			);
 		});
@@ -71,10 +81,11 @@ class MySQLProvider implements ProviderInterface {
 
 	public function add(string $name, string $type, int $val) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($val, $type, $name) {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $val, $type, $name) {
 			$retry = 1 << 8;
 			while ($retry-- > 0) {
-				$old = $db->table('player_info')
+				$old = $db->table($table)
 					->where('player_name', $name)->limit(1)
 					->column($type);
 				if (empty($old)) {
@@ -83,7 +94,7 @@ class MySQLProvider implements ProviderInterface {
 				//CAS
 				$old = array_pop($old);
 
-				if ($db->table('player_info')
+				if ($db->table($table)
 						->where('player_name', $name)
 						->where($type, $old)
 						->inc($type, $val)
@@ -99,19 +110,20 @@ class MySQLProvider implements ProviderInterface {
 
 	public function addCurrency(string $name) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($name) : bool {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $name) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$has = !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
-				['player_info', $dbName, $name]
+				[$table, $dbName, $name]
 			));
 			if ($has) {
 				return false;
 			}
 			return $db->execute(
 					sprintf(
-						'alter table player_info add column `%s` int not null default 0',
-						addslashes($name)
+						'alter table %s add column `%s` int not null default 0',
+						$table, addslashes($name)
 					)
 				) === 0;
 		});
@@ -120,19 +132,20 @@ class MySQLProvider implements ProviderInterface {
 
 	public function removeCurrency(string $name) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($name) : bool {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $name) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$notFound = empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
-				['player_info', $dbName, $name]
+				[$table, $dbName, $name]
 			));
 			if ($notFound) {
 				return false;
 			}
 			return $db->execute(
 					sprintf(
-						'alter table player_info drop column `%s`',
-						addslashes($name)
+						'alter table %s drop column `%s`',
+						$table, addslashes($name)
 					)
 				) === 0;
 		});
@@ -141,11 +154,12 @@ class MySQLProvider implements ProviderInterface {
 
 	public function hasCurrency(string $name) : IPromise {
 		$promise = new Promise();
-		$promise->then(static function (DbManager $db) use ($name) : bool {
+		$table = $this->table;
+		$promise->then(static function (DbManager $db) use ($table, $name) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			return !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA=? && COLUMN_NAME=?;',
-				['player_info', $dbName, $name]
+				[$table, $dbName, $name]
 			));
 		});
 		return $promise;
