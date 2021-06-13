@@ -17,8 +17,6 @@ interface ProviderInterface {
 
 	public function add(string $name, string $type, int $val) : IPromise;
 
-	public function start(IPromise $promise) : void;
-
 	public function addCurrency(string $name) : IPromise;
 
 	public function removeCurrency(string $name) : IPromise;
