@@ -26,7 +26,7 @@ class EconomyLoader extends PluginBase {
 		$autoload = __DIR__ . '/../../../vendor/autoload.php';
 		ThinkPHPTask::$autoload = $autoload;
 		require_once $autoload;
-		$this->saveResource('db_config.json', true);
+		$this->saveResource('db_config.json');
 		ThinkPHPTask::$config = file_get_contents($this->getDataFolder() . 'db_config.json');
 		self::$provider = new MySQLProvider('player_info');
 	}
