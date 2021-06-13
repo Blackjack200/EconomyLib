@@ -5,8 +5,8 @@ namespace blackjack200\economy\provider\mysql;
 
 
 use blackjack200\economy\provider\ProviderInterface;
-use libasync\IPromise;
 use libasync\Promise;
+use libasync\PromiseInterface;
 use pocketmine\Player;
 use think\db\exception\DataNotFoundException;
 use think\DbManager;
@@ -18,7 +18,7 @@ class MySQLProvider implements ProviderInterface {
 		$this->table = $table;
 	}
 
-	public function get(string $name, string $type) : IPromise {
+	public function get(string $name, string $type) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -34,7 +34,7 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
-	public function getALL(string $name) : IPromise {
+	public function getALL(string $name) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -49,7 +49,7 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
-	public function set(string $name, string $type, int $val) : IPromise {
+	public function set(string $name, string $type, int $val) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -66,7 +66,7 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
-	public function initialize(string $name) : IPromise {
+	public function initialize(string $name) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -78,7 +78,7 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
-	public function add(string $name, string $type, int $val) : IPromise {
+	public function add(string $name, string $type, int $val) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -103,12 +103,12 @@ class MySQLProvider implements ProviderInterface {
 						return true;
 					}
 				}
-			return false;
-		});
+				return false;
+			});
 		return $promise;
 	}
 
-	public function addCurrency(string $name) : IPromise {
+	public function addCurrency(string $name) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -131,7 +131,7 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
-	public function removeCurrency(string $name) : IPromise {
+	public function removeCurrency(string $name) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
@@ -154,7 +154,7 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
-	public function hasCurrency(string $name) : IPromise {
+	public function hasCurrency(string $name) : PromiseInterface {
 		$promise = new Promise();
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
