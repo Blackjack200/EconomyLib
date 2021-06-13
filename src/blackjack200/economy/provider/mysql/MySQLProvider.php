@@ -7,7 +7,6 @@ namespace blackjack200\economy\provider\mysql;
 use blackjack200\economy\provider\ProviderInterface;
 use libasync\Promise;
 use libasync\PromiseInterface;
-use pocketmine\Player;
 use think\db\exception\DataNotFoundException;
 use think\DbManager;
 
@@ -23,9 +22,6 @@ class MySQLProvider implements ProviderInterface {
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
 			->then(static function (DbManager $db) use ($table, $type, $name) {
-				if (!Player::isValidUserName($name)) {
-					return false;
-				}
 				$ret = $db->table($table)->limit(1)
 					->where('player_name', $name)
 					->column($type);
@@ -39,9 +35,6 @@ class MySQLProvider implements ProviderInterface {
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
 			->then(static function (DbManager $db) use ($table, $name) {
-				if (!Player::isValidUserName($name)) {
-					return false;
-				}
 				return $db->table($table)->limit(1)
 					->where('player_name', $name)
 					->findOrEmpty();
@@ -83,6 +76,9 @@ class MySQLProvider implements ProviderInterface {
 		$table = $this->table;
 		$promise->bind(ThinkPHPTask::class)
 			->then(static function (DbManager $db) use ($table, $val, $type, $name) {
+				$db->table($table)->extra('IGNORE')->insert(
+					['player_name' => $name]
+				);
 				$retry = 1 << 8;
 				while ($retry-- > 0) {
 					$old = $db->table($table)
