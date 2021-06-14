@@ -30,7 +30,7 @@ prepare_submodule();
 $hash = substr(git_hash(), 0, 16);
 $logger->send("Hash: $hash");
 
-$phar_name = "Plugin_$hash.phar";
+$phar_name = "EconomyLib_$hash.phar";
 $logger->send("File: $phar_name");
 
 $logger->send("Clean: $phar_name");
