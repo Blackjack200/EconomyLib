@@ -17,6 +17,10 @@ interface ProviderInterface {
 
 	public function add(string $name, string $type, int $val) : PromiseInterface;
 
+	public function asort(string $type, int $limit) : PromiseInterface;
+
+	public function dsort(string $type, int $limit) : PromiseInterface;
+
 	public function addCurrency(string $name) : PromiseInterface;
 
 	public function removeCurrency(string $name) : PromiseInterface;
