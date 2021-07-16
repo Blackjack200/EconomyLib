@@ -21,7 +21,8 @@ class ThinkPHPTask extends PromiseAsyncTask {
 			$this->log($master);
 		});
 		$db->setConfig(json_decode(self::$config, true));
-		foreach ($this->cal as $value) {
+		while ($this->cal->count() > 0) {
+			$value = $this->cal->shift();
 			$this->ret = $this->serializeData($value($db));
 			if ($this->ret === self::EXECUTE_DROP) {
 				break;
