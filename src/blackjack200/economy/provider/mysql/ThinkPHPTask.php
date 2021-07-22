@@ -33,7 +33,7 @@ class ThinkPHPTask extends PromiseAsyncTask {
 
 	public function log(?string $val) : void {
 		if ($val !== null) {
-			MainLogger::getLogger()->debug($val);
+			\GlobalLogger::get()->debug($val);
 		}
 	}
 }
