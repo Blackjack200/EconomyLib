@@ -124,7 +124,7 @@ class MySQLProvider implements ProviderInterface {
 				[$table, $dbName, $name]
 			));
 			if ($notFound) {
-				$resolve();
+				$reject();
 			}
 			if ($db->execute(sprintf(
 					'alter table %s drop column `%s`',
