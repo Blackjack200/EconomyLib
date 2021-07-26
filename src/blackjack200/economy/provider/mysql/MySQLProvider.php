@@ -19,49 +19,52 @@ class MySQLProvider implements ProviderInterface {
 
 	public function get(string $name, string $type) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $type, $name) {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DbManager $db) use ($table, $type, $name) : void {
 			$ret = $db->table($table)->limit(1)
 				->where('player_name', $name)
 				->column($type);
-			return array_pop($ret);
+			$resolve(array_pop($ret));
 		});
 	}
 
 	public function getALL(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $name) {
-			return $db->table($table)->limit(1)
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
+			$resolve($db->table($table)->limit(1)
 				->where('player_name', $name)
-				->findOrEmpty();
+				->findOrEmpty());
 		});
 	}
 
 	public function set(string $name, string $type, int $val) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $val, $type, $name) : bool {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $val, $type, $name) : void {
 			try {
 				$db->table($table)->where('player_name', $name)->findOrFail();
-				return $db->table($table)->where('player_name', $name)->update([$type => $val]);
+				$resolve((bool) $db->table($table)->where('player_name', $name)->update([$type => $val]));
 			} catch (DataNotFoundException $ex) {
-				return (bool) $db->table($table)->insert(
+				$resolve((bool) $db->table($table)->insert(
 					['player_name' => $name, $type => $val]
-				);
+				));
 			}
 		});
 	}
 
 	public function initialize(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $name) : bool {
-			return $db->table($table)->extra('IGNORE')->insert(
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
+			if ($db->table($table)->extra('IGNORE')->insert(
 				['player_name' => $name]
-			);
+			)) {
+				$resolve();
+			}
+			$reject();
 		});
 	}
 
 	public function add(string $name, string $type, int $val) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $val, $type, $name) {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $val, $type, $name) : void {
 			$db->table($table)->extra('IGNORE')->insert(
 				['player_name' => $name]
 			);
@@ -71,7 +74,7 @@ class MySQLProvider implements ProviderInterface {
 					->where('player_name', $name)->limit(1)
 					->column($type);
 				if (empty($old)) {
-					return false;
+					$reject();
 				}
 				//CAS
 				$old = array_pop($old);
@@ -82,57 +85,68 @@ class MySQLProvider implements ProviderInterface {
 						->inc($type, $val)
 						->limit(1)
 						->update() === 1) {
-					return true;
+					$resolve();
 				}
 			}
-				return false;
-			});
+			$reject();
+		});
 	}
 
 	public function addCurrency(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $name) : bool {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$has = !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
 				[$table, $dbName, $name]
 			));
 			if ($has) {
-				return false;
+				$reject();
 			}
-			return $db->execute(sprintf(
+			if ($db->execute(sprintf(
 					'alter table %s add column `%s` int not null default 0',
 					$table, addslashes($name)
-				)) === 0;
+				)) === 0) {
+				$resolve();
+			}
 		});
 	}
 
 	public function removeCurrency(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $name) : bool {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
 			$cfg = $db->getConfig();
-			$dbName = $cfg['connections'][$cfg['default']]['database'];
+			$dbName = $cfg['connections'][$cfg['default']]['database'] ?? null;
+			if ($dbName === null) {
+				throw new \InvalidArgumentException();
+			}
 			$notFound = empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
 				[$table, $dbName, $name]
 			));
 			if ($notFound) {
-				return false;
+				$resolve();
 			}
-			return $db->execute(sprintf(
+			if ($db->execute(sprintf(
 					'alter table %s drop column `%s`',
 					$table, addslashes($name)
-				)) === 0;
+				)) === 0) {
+				$resolve();
+			}
+			$reject();
 		});
 	}
 
 	public function hasCurrency(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($table, $name) : bool {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			return !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA=? && COLUMN_NAME=?;',
+			if (!empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA=? && COLUMN_NAME=?;',
 				[$table, $dbName, $name]
-			));
+			))) {
+				$resolve();
+			}
+			$reject();
 		});
 	}
 
@@ -146,12 +160,12 @@ class MySQLProvider implements ProviderInterface {
 
 	private function sort(string $mode, int $limit, string $type) : Promise {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (DbManager $db) use ($mode, $limit, $table, $type) : array {
-			return $db->table($table)
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($mode, $limit, $table, $type) : void {
+			$resolve($db->table($table)
 				->order($type, $mode)
 				->limit($limit)
 				->select()
-				->column($type, 'player_name');
+				->column($type, 'player_name'));
 		});
 	}
 
