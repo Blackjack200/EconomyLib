@@ -97,11 +97,11 @@ class MySQLProvider implements ProviderInterface {
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			$has = !empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
-				[$table, $dbName, $name]
+			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
+				[$dbName, $table, $name]
 			));
 			if ($has) {
-				$reject();
+				$resolve();
 			}
 			if ($db->execute(sprintf(
 					'alter table %s add column `%s` int not null default 0',
@@ -109,6 +109,7 @@ class MySQLProvider implements ProviderInterface {
 				)) === 0) {
 				$resolve();
 			}
+			$reject();
 		});
 	}
 
@@ -120,8 +121,8 @@ class MySQLProvider implements ProviderInterface {
 			if ($dbName === null) {
 				throw new \InvalidArgumentException();
 			}
-			$notFound = empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA = ? && COLUMN_NAME = ?;',
-				[$table, $dbName, $name]
+			$notFound = empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
+				[$dbName, $table, $name]
 			));
 			if ($notFound) {
 				$reject();
@@ -141,8 +142,8 @@ class MySQLProvider implements ProviderInterface {
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			if (!empty($db->query('select ? from information_schema.COLUMNS where TABLE_SCHEMA=? && COLUMN_NAME=?;',
-				[$table, $dbName, $name]
+			if (!empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
+				[$dbName, $table, $name]
 			))) {
 				$resolve();
 			}
