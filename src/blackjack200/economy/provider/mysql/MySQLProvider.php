@@ -62,9 +62,9 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
-	public function add(string $name, string $type, int $val) : PromiseInterface {
+	public function add(string $name, string $type, int $delta) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $val, $type, $name) : void {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $delta, $type, $name) : void {
 			$db->table($table)->extra('IGNORE')->insert(
 				['player_name' => $name]
 			);
@@ -82,7 +82,7 @@ class MySQLProvider implements ProviderInterface {
 				if ($db->table($table)
 						->where('player_name', $name)
 						->where($type, $old)
-						->inc($type, $val)
+						->inc($type, $delta)
 						->limit(1)
 						->update() === 1) {
 					$resolve();
@@ -92,9 +92,9 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
-	public function addCurrency(string $name) : PromiseInterface {
+	public function addCurrency(string $name, bool $signed = false) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($signed, $table, $name) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
@@ -103,8 +103,13 @@ class MySQLProvider implements ProviderInterface {
 			if ($has) {
 				$resolve();
 			}
+			if ($signed) {
+				$format = 'alter table %s add column `%s` int signed not null default 0';
+			} else {
+				$format = 'alter table %s add column `%s` int unsigned not null default 0';
+			}
 			if ($db->execute(sprintf(
-					'alter table %s add column `%s` int not null default 0',
+					$format,
 					$table, addslashes($name)
 				)) === 0) {
 				$resolve();

@@ -15,13 +15,13 @@ interface ProviderInterface {
 
 	public function set(string $name, string $type, int $val) : PromiseInterface;
 
-	public function add(string $name, string $type, int $val) : PromiseInterface;
+	public function add(string $name, string $type, int $delta) : PromiseInterface;
 
 	public function asort(string $type, int $limit) : PromiseInterface;
 
 	public function dsort(string $type, int $limit) : PromiseInterface;
 
-	public function addCurrency(string $name) : PromiseInterface;
+	public function addCurrency(string $name,bool $signed = false) : PromiseInterface;
 
 	public function removeCurrency(string $name) : PromiseInterface;
 
