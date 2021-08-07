@@ -92,9 +92,9 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
-	public function addCurrency(string $name, bool $signed = false) : PromiseInterface {
+	public function addCurrency(string $name, bool $signed = false, int $default = 0) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($signed, $table, $name) : void {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($signed, $table, $name, $default) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
@@ -104,13 +104,13 @@ class MySQLProvider implements ProviderInterface {
 				$resolve();
 			}
 			if ($signed) {
-				$format = 'alter table %s add column `%s` int signed not null default 0';
+				$format = 'alter table %s add column `%s` int signed not null default %s';
 			} else {
-				$format = 'alter table %s add column `%s` int unsigned not null default 0';
+				$format = 'alter table %s add column `%s` int unsigned not null default %s';
 			}
 			if ($db->execute(sprintf(
 					$format,
-					$table, addslashes($name)
+					$table, addslashes($name), $default
 				)) === 0) {
 				$resolve();
 			}
@@ -172,6 +172,22 @@ class MySQLProvider implements ProviderInterface {
 				->limit($limit)
 				->select()
 				->column($type, 'player_name'));
+		});
+	}
+
+	public function getCurrencies() : PromiseInterface {
+		$table = $this->table;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table) : void {
+			$result = $db->query("show columns from $table");
+			$names = [];
+			foreach ($result as $entry) {
+				$name = $entry['Field'];
+				$key = $entry['Key'];
+				if ($key === '') {
+					$names[] = $name;
+				}
+			}
+			$resolve($names);
 		});
 	}
 

@@ -21,7 +21,9 @@ interface ProviderInterface {
 
 	public function dsort(string $type, int $limit) : PromiseInterface;
 
-	public function addCurrency(string $name,bool $signed = false) : PromiseInterface;
+	public function getCurrencies() : PromiseInterface;
+
+	public function addCurrency(string $name, bool $signed = false, int $default = 0) : PromiseInterface;
 
 	public function removeCurrency(string $name) : PromiseInterface;
 
