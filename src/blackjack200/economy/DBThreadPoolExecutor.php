@@ -12,6 +12,7 @@ class DBThreadPoolExecutor {
 	private int $threadCount;
 	/** @var DBThreadExecutor[] */
 	private array $threads = [];
+	private int $counter = 0;
 
 	public function __construct(ThreadedLogger $logger, int $threadCount, string $autoload, string $config) {
 		$this->threadCount = $threadCount;
@@ -37,7 +38,10 @@ class DBThreadPoolExecutor {
 	}
 
 	public function submit(Promise $promise) : void {
-		$this->threads[array_rand($this->threads)]->submit($promise);
+		if (++$this->counter >= $this->threadCount) {
+			$this->counter = 0;
+		}
+		$this->threads[$this->counter]->submit($promise);
 	}
 
 	public function mainThreadHeartbeat() : void {
