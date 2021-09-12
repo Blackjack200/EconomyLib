@@ -192,6 +192,6 @@ class MySQLProvider implements ProviderInterface {
 	}
 
 	private function newPromise() : Promise {
-		return (new Promise())->bind(ThinkPHPTask::class);
+		return (new Promise())->bind(DBExecutorLauncher::class);
 	}
 }
