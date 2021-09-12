@@ -55,7 +55,7 @@ class DBThreadExecutor extends Thread {
 				gc_enable();
 				gc_collect_cycles();
 				gc_mem_caches();
-				GlobalLogger::get()->debug('Trigger GC');
+				//GlobalLogger::get()->debug('Trigger GC');
 				$tick = 0;
 			}
 		}
