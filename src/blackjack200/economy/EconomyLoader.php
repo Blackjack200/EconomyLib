@@ -6,18 +6,22 @@ namespace blackjack200\economy;
 
 use blackjack200\economy\provider\mysql\MySQLProvider;
 use blackjack200\economy\provider\ProviderInterface;
+use GlobalLogger;
+use libasync\executor\Executor;
+use libasync\executor\ThreadFactory;
+use libasync\executor\ThreadPoolExecutor;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
-use pocketmine\Server;
 use pocketmine\utils\Utils;
+use think\DbManager;
 use Webmozart\PathUtil\Path;
 
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
 	private static ProviderInterface $provider;
-	private DBThreadPoolExecutor $executor;
+	private ThreadPoolExecutor $executor;
 
-	public function getExecutor() : DBThreadPoolExecutor {
+	public function getExecutor() : ThreadPoolExecutor {
 		return $this->executor;
 	}
 
@@ -35,7 +39,27 @@ class EconomyLoader extends PluginBase {
 		$this->saveResource('db_config.json');
 		$config = file_get_contents($this->getDataFolder() . 'db_config.json');
 		self::$provider = new MySQLProvider('player_info');
-		$this->executor = new DBThreadPoolExecutor(Server::getInstance()->getLogger(), Utils::getCoreCount(), $autoload, $config);
+		$this->executor = new ThreadPoolExecutor(new ThreadFactory(
+			Executor::class, $this->getLogger(), $autoload,
+			static function (Executor $e) use ($config) : array {
+				$db = new DbManager();
+				$db->listen(function ($sql, $runtime, $master) {
+					$log = static function (?string $s) : void {
+						if ($s !== null) {
+							GlobalLogger::get()->debug($s);
+						}
+					};
+					$log($sql);
+					$log($runtime);
+					$log($master);
+				});
+				$db->setConfig(json_decode($config, true));
+				return [$db];
+			},
+			static function ($db) : void {
+				$db->close();
+			}
+		), Utils::getCoreCount());
 		$this->executor->start();
 		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(static function () : void {
 			EconomyLoader::getInstance()->getExecutor()->mainThreadHeartbeat();
