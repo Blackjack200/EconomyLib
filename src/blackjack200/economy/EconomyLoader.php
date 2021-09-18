@@ -11,7 +11,6 @@ use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
 use pocketmine\plugin\PluginBase;
-use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\Utils;
 use think\DbManager;
 use Webmozart\PathUtil\Path;
@@ -59,11 +58,8 @@ class EconomyLoader extends PluginBase {
 			static function ($db) : void {
 				$db->close();
 			}
-		), Utils::getCoreCount());
+		), $this->getScheduler(), Utils::getCoreCount());
 		$this->executor->start();
-		$this->getScheduler()->scheduleRepeatingTask(new ClosureTask(static function () : void {
-			EconomyLoader::getInstance()->getExecutor()->mainThreadHeartbeat();
-		}), 10);
 	}
 
 	protected function onDisable() : void {
