@@ -55,9 +55,7 @@ class EconomyLoader extends PluginBase {
 				$db->setConfig(json_decode($config, true));
 				return [$db];
 			},
-			static function ($db) : void {
-				$db->close();
-			}
+			static fn($db) => $db->close()
 		), $this->getScheduler(), Utils::getCoreCount());
 		$this->executor->start();
 	}
