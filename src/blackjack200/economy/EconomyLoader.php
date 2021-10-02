@@ -36,7 +36,7 @@ class EconomyLoader extends PluginBase {
 		self::$instance = $this;
 		$autoload = Path::join(__DIR__, '/../../../vendor/autoload.php');
 		$this->saveResource('db_config.json');
-		$config = file_get_contents($this->getDataFolder() . 'db_config.json');
+		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
 		self::$provider = new MySQLProvider('player_info');
 		$this->executor = new ThreadPoolExecutor(new ThreadFactory(
 			Executor::class, $this->getLogger(), $autoload,
