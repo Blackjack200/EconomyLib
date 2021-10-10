@@ -14,10 +14,6 @@ class TableMigrator {
 		$this->table = $table;
 	}
 
-	private function newPromise() : Promise {
-		return (new Promise())->bind(DBExecutorLauncher::class);
-	}
-
 	public function addColumns(string $column, string $type, mixed $default) : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($type, $column, $table, $default) : void {
@@ -29,12 +25,16 @@ class TableMigrator {
 			if ($has) {
 				$resolve();
 			}
-			$format = "alter table ? add column ? $type not null default ?";
-			if ($db->execute($format, $table, $column, $default) === 0) {
+			$format = "alter table %s add column %s $type not null default %s";
+			if ($db->execute(sprintf($format, $table, $column, $default)) === 0) {
 				$resolve();
 			}
 			$reject();
 		});
+	}
+
+	private function newPromise() : Promise {
+		return (new Promise())->bind(DBExecutorLauncher::class);
 	}
 
 	public function removeColumns(string $column) : PromiseInterface {
