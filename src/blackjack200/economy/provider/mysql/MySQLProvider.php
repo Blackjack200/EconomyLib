@@ -34,9 +34,11 @@ class MySQLProvider implements ProviderInterface {
 	public function getALL(string $name) : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
-			$resolve($db->table($table)->limit(1)
+			$ret = $db->table($table)->limit(1)
 				->where('player_name', $name)
-				->findOrEmpty());
+				->findOrEmpty();
+			unset($ret['player_name']);
+			$resolve($ret);
 		});
 	}
 
