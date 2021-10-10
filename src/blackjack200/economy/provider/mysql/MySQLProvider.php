@@ -11,11 +11,13 @@ use think\db\exception\DataNotFoundException;
 use think\DbManager;
 
 class MySQLProvider implements ProviderInterface {
+	public string $index;
 	protected string $table;
 	protected TableMigrator $migrator;
 	protected string $launcher;
 
-	public function __construct(string $table, string $launcher = DBExecutorLauncher::class) {
+	public function __construct(string $table, string $index, string $launcher = DBExecutorLauncher::class) {
+		$this->index = $index;
 		$this->table = $table;
 		$this->migrator = new TableMigrator($table);
 		$this->launcher = $launcher;
@@ -23,9 +25,10 @@ class MySQLProvider implements ProviderInterface {
 
 	public function get(string $name, string $type) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DbManager $db) use ($table, $type, $name) : void {
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DbManager $db) use ($index, $table, $type, $name) : void {
 			$ret = $db->table($table)->limit(1)
-				->where('player_name', $name)
+				->where($index, $name)
 				->column($type);
 			$resolve(array_pop($ret));
 		});
@@ -33,24 +36,26 @@ class MySQLProvider implements ProviderInterface {
 
 	public function getALL(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $table, $name) : void {
 			$ret = $db->table($table)->limit(1)
-				->where('player_name', $name)
+				->where($index, $name)
 				->findOrEmpty();
-			unset($ret['player_name']);
+			unset($ret[$index]);
 			$resolve($ret);
 		});
 	}
 
-	public function set(string $name, string $type, int $val) : PromiseInterface {
+	public function set(string $name, string $col, int $val) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $val, $type, $name) : void {
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $table, $val, $col, $name) : void {
 			try {
-				$db->table($table)->where('player_name', $name)->findOrFail();
-				$resolve((bool) $db->table($table)->where('player_name', $name)->update([$type => $val]));
+				$db->table($table)->where($index, $name)->findOrFail();
+				$resolve((bool) $db->table($table)->where($index, $name)->update([$col => $val]));
 			} catch (DataNotFoundException $ex) {
 				$resolve((bool) $db->table($table)->insert(
-					['player_name' => $name, $type => $val]
+					[$index => $name, $col => $val]
 				));
 			}
 		});
@@ -58,9 +63,10 @@ class MySQLProvider implements ProviderInterface {
 
 	public function initialize(string $name) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $table, $name) : void {
 			if ($db->table($table)->extra('IGNORE')->insert(
-				['player_name' => $name]
+				[$index => $name]
 			)) {
 				$resolve();
 			}
@@ -70,14 +76,15 @@ class MySQLProvider implements ProviderInterface {
 
 	public function add(string $name, string $type, int $delta) : PromiseInterface {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $delta, $type, $name) : void {
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $table, $delta, $type, $name) : void {
 			$db->table($table)->extra('IGNORE')->insert(
-				['player_name' => $name]
+				[$index => $name]
 			);
 			$retry = 1 << 8;
 			while ($retry-- > 0) {
 				$old = $db->table($table)
-					->where('player_name', $name)->limit(1)
+					->where($index, $name)->limit(1)
 					->column($type);
 				if (empty($old)) {
 					$reject();
@@ -86,7 +93,7 @@ class MySQLProvider implements ProviderInterface {
 				$old = array_pop($old);
 
 				if ($db->table($table)
-						->where('player_name', $name)
+						->where($index, $name)
 						->where($type, $old)
 						->inc($type, $delta)
 						->limit(1)
@@ -108,12 +115,13 @@ class MySQLProvider implements ProviderInterface {
 
 	private function sort(string $mode, int $limit, string $type) : Promise {
 		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($mode, $limit, $table, $type) : void {
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $mode, $limit, $table, $type) : void {
 			$resolve($db->table($table)
 				->order($type, $mode)
 				->limit($limit)
 				->select()
-				->column($type, 'player_name'));
+				->column($type, $index));
 		});
 	}
 
@@ -133,7 +141,19 @@ class MySQLProvider implements ProviderInterface {
 		return $this->migrator->getColumns();
 	}
 
-	private function newPromise() : Promise {
+	protected function newPromise() : Promise {
 		return (new Promise())->bind($this->launcher);
+	}
+
+	public function getLauncher() : string {
+		return $this->launcher;
+	}
+
+	public function getTable() : string {
+		return $this->table;
+	}
+
+	public function getIndex() : string {
+		return $this->index;
 	}
 }
