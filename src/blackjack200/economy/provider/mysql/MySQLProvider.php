@@ -37,6 +37,10 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
+	protected function newPromise() : Promise {
+		return (new Promise())->bind($this->launcher);
+	}
+
 	public function get(string $name, string $type) : PromiseInterface {
 		$table = $this->table;
 		$index = $this->index;
@@ -73,6 +77,19 @@ class MySQLProvider implements ProviderInterface {
 				));
 			}
 		});
+	}
+
+	public function remove(string $name) : PromiseInterface {
+		$promise = new Promise();
+		$table = $this->table;
+		$index = $this->index;
+		$this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $name, $table) : void {
+			if ($db->table($table)->where($index, $name)->delete() !== 0) {
+				$resolve();
+			}
+			$reject();
+		});
+		return $promise;
 	}
 
 	public function initialize(string $name) : PromiseInterface {
@@ -123,10 +140,6 @@ class MySQLProvider implements ProviderInterface {
 		return $this->sort('ASC', $limit, $type);
 	}
 
-	public function dsort(string $type, int $limit) : PromiseInterface {
-		return $this->sort('DESC', $limit, $type);
-	}
-
 	private function sort(string $mode, int $limit, string $type) : Promise {
 		$table = $this->table;
 		$index = $this->index;
@@ -137,6 +150,10 @@ class MySQLProvider implements ProviderInterface {
 				->select()
 				->column($type, $index));
 		});
+	}
+
+	public function dsort(string $type, int $limit) : PromiseInterface {
+		return $this->sort('DESC', $limit, $type);
 	}
 
 	public function addColumn(string $col, string $type, mixed $default) : PromiseInterface {
@@ -153,10 +170,6 @@ class MySQLProvider implements ProviderInterface {
 
 	public function getColumns() : PromiseInterface {
 		return $this->migrator->getColumns();
-	}
-
-	protected function newPromise() : Promise {
-		return (new Promise())->bind($this->launcher);
 	}
 
 	public function getLauncher() : string {
