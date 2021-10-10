@@ -23,6 +23,20 @@ class MySQLProvider implements ProviderInterface {
 		$this->launcher = $launcher;
 	}
 
+	public function has(string $name) : PromiseInterface {
+		$table = $this->table;
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DbManager $db) use ($name, $index, $table) : void {
+			try {
+				$db->table($table)->where($index, $name)
+					->findOrFail($name);
+				$resolve(true);
+			} catch (DataNotFoundException $e) {
+			}
+			$resolve(false);
+		});
+	}
+
 	public function get(string $name, string $type) : PromiseInterface {
 		$table = $this->table;
 		$index = $this->index;

@@ -13,6 +13,8 @@ interface ProviderInterface {
 
 	public function getALL(string $name) : PromiseInterface;
 
+	public function has(string $name) : PromiseInterface;
+
 	public function set(string $name, string $col, int $val) : PromiseInterface;
 
 	public function add(string $name, string $type, int $delta) : PromiseInterface;
