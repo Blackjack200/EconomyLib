@@ -25,6 +25,8 @@ interface ProviderInterface {
 
 	public function remove(string $name) : PromiseInterface;
 
+	public function rename(string $old, string $new) : PromiseInterface;
+
 	public function addColumn(string $col, string $type, mixed $default) : PromiseInterface;
 
 	public function hasColumn(string $col) : PromiseInterface;

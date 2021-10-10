@@ -92,6 +92,27 @@ class MySQLProvider implements ProviderInterface {
 		return $promise;
 	}
 
+	public function rename(string $old, string $new) : PromiseInterface {
+		$table = $this->table;
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($old, $new, $index, $table) : void {
+			$db->table($table)->extra('IGNORE')->insert(
+				[$index => $old]
+			);
+			$retry = 1 << 8;
+			while ($retry-- > 0) {
+				if ($db->table($table)
+						->where($index, $old)
+						->data([$index => $new])
+						->limit(1)
+						->update() === 1) {
+					$resolve();
+				}
+			}
+			$reject();
+		});
+	}
+
 	public function initialize(string $name) : PromiseInterface {
 		$table = $this->table;
 		$index = $this->index;
