@@ -12,9 +12,13 @@ use think\DbManager;
 
 class MySQLProvider implements ProviderInterface {
 	protected string $table;
+	protected TableMigrator $migrator;
+	protected string $launcher;
 
-	public function __construct(string $table) {
+	public function __construct(string $table, string $launcher = DBExecutorLauncher::class) {
 		$this->table = $table;
+		$this->migrator = new TableMigrator($table);
+		$this->launcher = $launcher;
 	}
 
 	public function get(string $name, string $type) : PromiseInterface {
@@ -92,70 +96,6 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
-	public function addCurrency(string $name, bool $signed = false, int $default = 0) : PromiseInterface {
-		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($signed, $table, $name, $default) : void {
-			$cfg = $db->getConfig();
-			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
-				[$dbName, $table, $name]
-			));
-			if ($has) {
-				$resolve();
-			}
-			if ($signed) {
-				$format = 'alter table %s add column `%s` int signed not null default %s';
-			} else {
-				$format = 'alter table %s add column `%s` int unsigned not null default %s';
-			}
-			if ($db->execute(sprintf(
-					$format,
-					$table, addslashes($name), $default
-				)) === 0) {
-				$resolve();
-			}
-			$reject();
-		});
-	}
-
-	public function removeCurrency(string $name) : PromiseInterface {
-		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
-			$cfg = $db->getConfig();
-			$dbName = $cfg['connections'][$cfg['default']]['database'] ?? null;
-			if ($dbName === null) {
-				throw new \InvalidArgumentException();
-			}
-			$notFound = empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
-				[$dbName, $table, $name]
-			));
-			if ($notFound) {
-				$reject();
-			}
-			if ($db->execute(sprintf(
-					'alter table %s drop column `%s`',
-					$table, addslashes($name)
-				)) === 0) {
-				$resolve();
-			}
-			$reject();
-		});
-	}
-
-	public function hasCurrency(string $name) : PromiseInterface {
-		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $name) : void {
-			$cfg = $db->getConfig();
-			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			if (!empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
-				[$dbName, $table, $name]
-			))) {
-				$resolve();
-			}
-			$reject();
-		});
-	}
-
 	public function asort(string $type, int $limit) : PromiseInterface {
 		return $this->sort('ASC', $limit, $type);
 	}
@@ -175,23 +115,23 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
-	public function getCurrencies() : PromiseInterface {
-		$table = $this->table;
-		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table) : void {
-			$result = $db->query("show columns from $table");
-			$names = [];
-			foreach ($result as $entry) {
-				$name = $entry['Field'];
-				$key = $entry['Key'];
-				if ($key === '') {
-					$names[] = $name;
-				}
-			}
-			$resolve($names);
-		});
+	public function addColumn(string $col, string $type, mixed $default) : PromiseInterface {
+		return $this->migrator->addColumns($col, $type, $default);
+	}
+
+	public function removeColumn(string $col) : PromiseInterface {
+		return $this->migrator->removeColumns($col);
+	}
+
+	public function hasColumn(string $col) : PromiseInterface {
+		return $this->migrator->hasColumns($col);
+	}
+
+	public function getColumns() : PromiseInterface {
+		return $this->migrator->getColumns();
 	}
 
 	private function newPromise() : Promise {
-		return (new Promise())->bind(DBExecutorLauncher::class);
+		return (new Promise())->bind($this->launcher);
 	}
 }

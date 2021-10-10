@@ -21,11 +21,11 @@ interface ProviderInterface {
 
 	public function dsort(string $type, int $limit) : PromiseInterface;
 
-	public function getCurrencies() : PromiseInterface;
+	public function getColumns() : PromiseInterface;
 
-	public function addCurrency(string $name, bool $signed = false, int $default = 0) : PromiseInterface;
+	public function addColumn(string $col, string $type, mixed $default) : PromiseInterface;
 
-	public function removeCurrency(string $name) : PromiseInterface;
+	public function removeColumn(string $col) : PromiseInterface;
 
-	public function hasCurrency(string $name) : PromiseInterface;
+	public function hasColumn(string $col) : PromiseInterface;
 }

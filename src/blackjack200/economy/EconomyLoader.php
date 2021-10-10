@@ -10,6 +10,7 @@ use GlobalLogger;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
+use pocketmine\plugin\Plugin;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\Utils;
 use think\DbManager;
@@ -38,8 +39,17 @@ class EconomyLoader extends PluginBase {
 		$this->saveResource('db_config.json');
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
 		self::$provider = new MySQLProvider('player_info');
-		$this->executor = new ThreadPoolExecutor(new ThreadFactory(
-			Executor::class, $this->getLogger(), $autoload,
+		$this->executor = self::createThreadPoolExecutor($this, $autoload, $config);
+		$this->executor->start();
+	}
+
+	protected function onDisable() : void {
+		$this->executor->shutdown();
+	}
+
+	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, bool|string $config) : ThreadPoolExecutor {
+		return new ThreadPoolExecutor(new ThreadFactory(
+			Executor::class, $plugin->getLogger(), $autoload,
 			static function (Executor $e) use ($config) : array {
 				$db = new DbManager();
 				$db->listen(function ($sql, $runtime, $master) {
@@ -56,11 +66,6 @@ class EconomyLoader extends PluginBase {
 				return [$db];
 			},
 			static fn($db) => $db->close()
-		), $this->getScheduler(), (Utils::getCoreCount() >> 1) + 1);
-		$this->executor->start();
-	}
-
-	protected function onDisable() : void {
-		$this->executor->shutdown();
+		), $plugin->getScheduler(), (Utils::getCoreCount() >> 1) + 1);
 	}
 }
