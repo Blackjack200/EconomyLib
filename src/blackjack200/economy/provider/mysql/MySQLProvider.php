@@ -31,7 +31,7 @@ class MySQLProvider implements ProviderInterface {
 				$db->table($table)->where($index, $name)
 					->findOrFail($name);
 				$resolve(true);
-			} catch (DataNotFoundException $e) {
+			} catch (DataNotFoundException) {
 			}
 			$resolve(false);
 		});
@@ -71,7 +71,7 @@ class MySQLProvider implements ProviderInterface {
 			try {
 				$db->table($table)->where($index, $name)->findOrFail();
 				$resolve((bool) $db->table($table)->where($index, $name)->update([$col => $val]));
-			} catch (DataNotFoundException $ex) {
+			} catch (DataNotFoundException) {
 				$resolve((bool) $db->table($table)->insert(
 					[$index => $name, $col => $val]
 				));

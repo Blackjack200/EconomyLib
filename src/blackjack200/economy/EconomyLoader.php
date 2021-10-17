@@ -21,10 +21,6 @@ class EconomyLoader extends PluginBase {
 	private static ProviderInterface $provider;
 	private ThreadPoolExecutor $executor;
 
-	public function getExecutor() : ThreadPoolExecutor {
-		return $this->executor;
-	}
-
 	public static function getInstance() : self {
 		return self::$instance;
 	}
@@ -33,18 +29,18 @@ class EconomyLoader extends PluginBase {
 		return self::$provider;
 	}
 
+	public function getExecutor() : ThreadPoolExecutor {
+		return $this->executor;
+	}
+
 	public function onEnable() : void {
 		self::$instance = $this;
 		$autoload = Path::join(__DIR__, '/../../../vendor/autoload.php');
 		$this->saveResource('db_config.json');
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
-		self::$provider = new MySQLProvider('player_info','player_name');
+		self::$provider = new MySQLProvider('player_info', 'player_name');
 		$this->executor = self::createThreadPoolExecutor($this, $autoload, $config);
 		$this->executor->start();
-	}
-
-	protected function onDisable() : void {
-		$this->executor->shutdown();
 	}
 
 	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, bool|string $config) : ThreadPoolExecutor {
@@ -67,5 +63,9 @@ class EconomyLoader extends PluginBase {
 			},
 			static fn($db) => $db->close()
 		), $plugin->getScheduler(), (Utils::getCoreCount() >> 1) + 1);
+	}
+
+	protected function onDisable() : void {
+		$this->executor->shutdown();
 	}
 }
