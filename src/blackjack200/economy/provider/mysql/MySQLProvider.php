@@ -64,7 +64,7 @@ class MySQLProvider implements ProviderInterface {
 		});
 	}
 
-	public function set(string $name, string $col, int $val) : PromiseInterface {
+	public function set(string $name, string $col, $val) : PromiseInterface {
 		$table = $this->table;
 		$index = $this->index;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $table, $val, $col, $name) : void {
@@ -80,16 +80,14 @@ class MySQLProvider implements ProviderInterface {
 	}
 
 	public function remove(string $name) : PromiseInterface {
-		$promise = new Promise();
 		$table = $this->table;
 		$index = $this->index;
-		$this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $name, $table) : void {
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $name, $table) : void {
 			if ($db->table($table)->where($index, $name)->delete() !== 0) {
 				$resolve();
 			}
 			$reject();
 		});
-		return $promise;
 	}
 
 	public function rename(string $old, string $new) : PromiseInterface {
