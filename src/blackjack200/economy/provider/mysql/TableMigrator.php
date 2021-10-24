@@ -14,6 +14,9 @@ class TableMigrator {
 		$this->table = $table;
 	}
 
+	/**
+	 * @return PromiseInterface<void>
+	 */
 	public function addColumns(string $column, string $type, mixed $default) : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($type, $column, $table, $default) : void {
@@ -37,6 +40,10 @@ class TableMigrator {
 		return (new Promise())->bind(DBExecutorLauncher::class);
 	}
 
+
+	/**
+	 * @return PromiseInterface<void>
+	 */
 	public function removeColumns(string $column) : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $column) : void {
@@ -61,20 +68,23 @@ class TableMigrator {
 		});
 	}
 
+	/**
+	 * @return PromiseInterface<boolean>
+	 */
 	public function hasColumns(string $column) : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table, $column) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			if (!empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
+			$resolve(!empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
 				[$dbName, $table, $column]
-			))) {
-				$resolve();
-			}
-			$reject();
+			)));
 		});
 	}
 
+	/**
+	 * @return PromiseInterface<string[]>
+	 */
 	public function getColumns() : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($table) : void {
