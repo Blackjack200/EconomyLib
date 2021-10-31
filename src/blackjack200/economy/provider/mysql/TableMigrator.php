@@ -28,8 +28,11 @@ class TableMigrator {
 			if ($has) {
 				$resolve();
 			}
-			$format = "alter table %s add column %s $type not null default %s";
-			if ($db->execute(sprintf($format, $table, $column, $default)) === 0) {
+			$format = "alter table %s add column %s $type not null";
+			if (!empty($default)) {
+				$format .= " default $default";
+			}
+			if ($db->execute(sprintf($format, $table, $column)) === 0) {
 				$resolve();
 			}
 			$reject();
