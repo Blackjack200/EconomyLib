@@ -60,7 +60,7 @@ interface ProviderInterface {
 	/**
 	 * @return PromiseInterface<void>
 	 */
-	public function addColumn(string $col, string $type, mixed $default) : PromiseInterface;
+	public function addColumn(string $col, string $type, string $default) : PromiseInterface;
 
 	/**
 	 * @return PromiseInterface<boolean>

@@ -175,7 +175,7 @@ class MySQLProvider implements ProviderInterface {
 		return $this->sort('DESC', $limit, $type);
 	}
 
-	public function addColumn(string $col, string $type, mixed $default) : PromiseInterface {
+	public function addColumn(string $col, string $type, string $default) : PromiseInterface {
 		return $this->migrator->addColumns($col, $type, $default);
 	}
 

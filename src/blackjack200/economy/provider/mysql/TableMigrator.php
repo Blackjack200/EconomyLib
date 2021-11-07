@@ -17,7 +17,7 @@ class TableMigrator {
 	/**
 	 * @return PromiseInterface<void>
 	 */
-	public function addColumns(string $column, string $type, mixed $default) : PromiseInterface {
+	public function addColumns(string $column, string $type, string $default) : PromiseInterface {
 		$table = $this->table;
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($type, $column, $table, $default) : void {
 			$cfg = $db->getConfig();
@@ -29,7 +29,7 @@ class TableMigrator {
 				$resolve();
 			}
 			$format = "alter table %s add column %s $type not null";
-			if (!empty($default)) {
+			if ($default !== '') {
 				$format .= " default $default";
 			}
 			if ($db->execute(sprintf($format, $table, $column)) === 0) {
