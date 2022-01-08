@@ -33,7 +33,7 @@ interface ProviderInterface {
 	public function get(string $name, string $type) : PromiseInterface;
 
 	/**
-	 * @return PromiseInterface<mixed>
+	 * @return PromiseInterface<mixed[]>
 	 */
 	public function getALL(string $name) : PromiseInterface;
 
