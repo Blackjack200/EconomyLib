@@ -58,7 +58,10 @@ class EconomyLoader extends PluginBase {
 					$log($runtime);
 					$log($master);
 				});
-				$db->setConfig(json_decode($config, true));
+				$data = json_decode($config, true);
+				//TODO is there a better way to do this?
+				$data['fields_cache'] = false;
+				$db->setConfig($data);
 				return [$db];
 			},
 			static fn($db) => $db->close()
