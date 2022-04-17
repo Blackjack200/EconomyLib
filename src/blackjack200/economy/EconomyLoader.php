@@ -60,7 +60,8 @@ class EconomyLoader extends PluginBase {
 				});
 				$data = json_decode($config, true);
 				//TODO is there a better way to do this?
-				$data['fields_cache'] = false;
+				$data['connections']['mysql']['fields_cache'] = false;
+				$data['connections']['mysql']['fields_strict'] = false;
 				$db->setConfig($data);
 				return [$db];
 			},

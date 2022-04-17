@@ -22,17 +22,17 @@ class TableMigrator {
 		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($type, $column, $table, $default) : void {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
-			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA =? && TABLE_NAME = ? && COLUMN_NAME = ?;',
+			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
 				[$dbName, $table, $column]
 			));
 			if ($has) {
 				$resolve();
 			}
-			$format = "alter table %s add column %s $type not null";
+			$format = "alter table %s add column `%s` $type not null";
 			if ($default !== '') {
-				$format .= " default $default";
+				$format .= " default " . addslashes($default);
 			}
-			if ($db->execute(sprintf($format, $table, $column)) === 0) {
+			if ($db->execute(sprintf($format, $table, addslashes($column))) === 0) {
 				$resolve();
 			}
 			$reject();
