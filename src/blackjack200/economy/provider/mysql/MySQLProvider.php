@@ -131,6 +131,9 @@ class MySQLProvider implements ProviderInterface {
 			$db->table($table)->extra('IGNORE')->insert(
 				[$index => $name]
 			);
+			if($delta === 0){
+				$resolve();
+			}
 			$retry = 1 << 8;
 			while ($retry-- > 0) {
 				$old = $db->table($table)
