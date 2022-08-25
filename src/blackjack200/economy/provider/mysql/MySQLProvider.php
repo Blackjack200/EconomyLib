@@ -5,8 +5,8 @@ namespace blackjack200\economy\provider\mysql;
 
 
 use blackjack200\economy\provider\ProviderInterface;
-use libasync\Promise;
-use libasync\PromiseInterface;
+use libasync\promise\Promise;
+use libasync\promise\PromiseInterface;
 use think\db\exception\DataNotFoundException;
 use think\DbManager;
 

@@ -5,7 +5,7 @@ namespace blackjack200\economy\provider\mysql;
 
 
 use blackjack200\economy\EconomyLoader;
-use libasync\Promise;
+use libasync\promise\Promise;
 
 class DBExecutorLauncher {
 	private Promise $promise;

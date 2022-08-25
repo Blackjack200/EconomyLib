@@ -4,7 +4,7 @@
 namespace blackjack200\economy\provider;
 
 
-use libasync\PromiseInterface;
+use libasync\promise\PromiseInterface;
 
 interface ProviderInterface {
 	/**
@@ -13,7 +13,7 @@ interface ProviderInterface {
 	public function initialize(string $name) : PromiseInterface;
 
 	/**
-	 * @return PromiseInterface<void>
+	 * @return \libasync\promise\PromiseInterface<void>
 	 */
 	public function add(string $name, string $type, int $delta) : PromiseInterface;
 
@@ -38,12 +38,12 @@ interface ProviderInterface {
 	public function getALL(string $name) : PromiseInterface;
 
 	/**
-	 * @return PromiseInterface<array>
+	 * @return \libasync\promise\PromiseInterface<array>
 	 */
 	public function asort(string $type, int $limit) : PromiseInterface;
 
 	/**
-	 * @return PromiseInterface<array>
+	 * @return \libasync\promise\PromiseInterface<array>
 	 */
 	public function dsort(string $type, int $limit) : PromiseInterface;
 
@@ -68,7 +68,7 @@ interface ProviderInterface {
 	public function hasColumn(string $col) : PromiseInterface;
 
 	/**
-	 * @return PromiseInterface<string[]>
+	 * @return \libasync\promise\PromiseInterface<string[]>
 	 */
 	public function getColumns() : PromiseInterface;
 

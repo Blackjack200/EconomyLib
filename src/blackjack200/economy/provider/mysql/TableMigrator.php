@@ -3,8 +3,8 @@
 namespace blackjack200\economy\provider\mysql;
 
 use InvalidArgumentException;
-use libasync\Promise;
-use libasync\PromiseInterface;
+use libasync\promise\Promise;
+use libasync\promise\PromiseInterface;
 use think\DbManager;
 
 class TableMigrator {
@@ -15,7 +15,7 @@ class TableMigrator {
 	}
 
 	/**
-	 * @return PromiseInterface<void>
+	 * @return \libasync\promise\PromiseInterface<void>
 	 */
 	public function addColumns(string $column, string $type, string $default) : PromiseInterface {
 		$table = $this->table;
@@ -45,7 +45,7 @@ class TableMigrator {
 
 
 	/**
-	 * @return PromiseInterface<void>
+	 * @return \libasync\promise\PromiseInterface<void>
 	 */
 	public function removeColumns(string $column) : PromiseInterface {
 		$table = $this->table;
@@ -72,7 +72,7 @@ class TableMigrator {
 	}
 
 	/**
-	 * @return PromiseInterface<boolean>
+	 * @return \libasync\promise\PromiseInterface<boolean>
 	 */
 	public function hasColumns(string $column) : PromiseInterface {
 		$table = $this->table;
