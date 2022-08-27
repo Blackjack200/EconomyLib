@@ -76,4 +76,9 @@ interface ProviderInterface {
 	 * @return PromiseInterface<void>
 	 */
 	public function removeColumn(string $col) : PromiseInterface;
+
+	/**
+	 * @return \libasync\promise\PromiseInterface<string[]>
+	 */
+	public function keys() : PromiseInterface;
 }

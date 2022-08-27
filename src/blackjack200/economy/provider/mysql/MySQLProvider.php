@@ -205,4 +205,14 @@ class MySQLProvider implements ProviderInterface {
 	public function getIndex() : string {
 		return $this->index;
 	}
+
+	public function keys() : PromiseInterface {
+		$table = $this->table;
+		$index = $this->index;
+		return $this->newPromise()->then(static function (callable $resolve, callable $reject, DBManager $db) use ($index, $table) : void {
+			$arr = $db->table($table)->column($index);
+			sort($arr, SORT_STRING);
+			$resolve($arr);
+		});
+	}
 }
