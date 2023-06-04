@@ -10,11 +10,11 @@ use GlobalLogger;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
+use libasync\utils\LoggerUtils;
 use pocketmine\plugin\Plugin;
 use pocketmine\plugin\PluginBase;
-use pocketmine\utils\Utils;
+use Symfony\Component\Filesystem\Path;
 use think\DbManager;
-use Webmozart\PathUtil\Path;
 
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
@@ -33,7 +33,7 @@ class EconomyLoader extends PluginBase {
 		return $this->executor;
 	}
 
-	public function onEnable() : void {
+    public function onEnable() : void {
 		self::$instance = $this;
 		$autoload = Path::join(__DIR__, '/../../../vendor/autoload.php');
 		$this->saveResource('db_config.json');
@@ -44,8 +44,8 @@ class EconomyLoader extends PluginBase {
 	}
 
 	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, bool|string $config) : ThreadPoolExecutor {
-		return new ThreadPoolExecutor(new ThreadFactory(
-			Executor::class, $plugin->getLogger(), $autoload,
+        return new ThreadPoolExecutor(new ThreadFactory(
+			Executor::class, LoggerUtils::makeLogger($plugin), $autoload,
 			static function (Executor $e) use ($config) : array {
 				$db = new DbManager();
 				$db->listen(function ($sql, $runtime, $master) {

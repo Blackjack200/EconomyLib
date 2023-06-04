@@ -8,9 +8,6 @@
     }
   ],
   "require": {
-    "topthink/think-orm": "^2.0.53",
-    "ext-json": "*",
-    "ext-pthreads": "*",
-    "ext-igbinary": "*"
+    "topthink/think-orm": "^3.0.9"
   }
 }
