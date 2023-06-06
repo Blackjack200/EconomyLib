@@ -4,9 +4,12 @@
 namespace blackjack200\economy;
 
 
+use blackjack200\economy\provider\await\AwaitMySQLProvider;
+use blackjack200\economy\provider\await\AwaitProviderInterface;
 use blackjack200\economy\provider\mysql\MySQLProvider;
 use blackjack200\economy\provider\ProviderInterface;
 use GlobalLogger;
+use libasync\await\Await;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
@@ -19,10 +22,15 @@ use think\DbManager;
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
 	private static ProviderInterface $provider;
+	private static AwaitProviderInterface $awaitProvider;
 	private ThreadPoolExecutor $executor;
 
 	public static function getInstance() : self {
 		return self::$instance;
+	}
+
+	public static function getAwaitProvider() : AwaitProviderInterface {
+		return self::$awaitProvider;
 	}
 
 	public static function getProvider() : ProviderInterface {
@@ -33,23 +41,29 @@ class EconomyLoader extends PluginBase {
 		return $this->executor;
 	}
 
-    public function onEnable() : void {
+	public function onEnable() : void {
 		self::$instance = $this;
 		$autoload = Path::join(__DIR__, '/../../../vendor/autoload.php');
 		$this->saveResource('db_config.json');
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
-		self::$provider = new MySQLProvider('player_info', 'player_name');
 		$this->executor = self::createThreadPoolExecutor($this, $autoload, $config);
 		$this->executor->start();
+		self::$provider = new MySQLProvider('player_info', 'player_name');
+		self::$awaitProvider = new AwaitMySQLProvider('player_info', 'player_name', $this->executor);
+		Await::sync(function() {
+			$priv = new AwaitMySQLProvider('player_info', 'player_name', $this->executor);
+			$g = yield from $priv->getALL('IPlayfordev');
+			var_dump($g);
+		});
 	}
 
 	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, bool|string $config) : ThreadPoolExecutor {
-        return new ThreadPoolExecutor(new ThreadFactory(
+		return new ThreadPoolExecutor(new ThreadFactory(
 			Executor::class, LoggerUtils::makeLogger($plugin), $autoload,
-			static function (Executor $e) use ($config) : array {
+			static function(Executor $e) use ($config) : array {
 				$db = new DbManager();
-				$db->listen(function ($sql, $runtime, $master) {
-					$log = static function (?string $s) : void {
+				$db->listen(function($sql, $runtime, $master) {
+					$log = static function(?string $s) : void {
 						if ($s !== null) {
 							GlobalLogger::get()->debug($s);
 						}
@@ -66,7 +80,7 @@ class EconomyLoader extends PluginBase {
 				return [$db];
 			},
 			static fn($db) => $db->close()
-		), $plugin->getScheduler(), 1);
+		), 1);
 	}
 
 	protected function onDisable() : void {
