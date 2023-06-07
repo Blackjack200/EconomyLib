@@ -50,11 +50,6 @@ class EconomyLoader extends PluginBase {
 		$this->executor->start();
 		self::$provider = new MySQLProvider('player_info', 'player_name');
 		self::$awaitProvider = new AwaitMySQLProvider('player_info', 'player_name', $this->executor);
-		Await::sync(function() {
-			$priv = new AwaitMySQLProvider('player_info', 'player_name', $this->executor);
-			$g = yield from $priv->getALL('IPlayfordev');
-			var_dump($g);
-		});
 	}
 
 	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, bool|string $config) : ThreadPoolExecutor {
