@@ -46,7 +46,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function get(string $name, string $type) : Generator {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $type, $name) : array {
+		return Await::async(static function(DbManager $db) use ($index, $table, $type, $name) {
 			$ret = $db->table($table)->limit(1)
 				->where($index, $name)
 				->column($type);
