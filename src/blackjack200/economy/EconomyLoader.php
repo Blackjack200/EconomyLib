@@ -6,10 +6,7 @@ namespace blackjack200\economy;
 
 use blackjack200\economy\provider\await\AwaitMySQLProvider;
 use blackjack200\economy\provider\await\AwaitProviderInterface;
-use blackjack200\economy\provider\mysql\MySQLProvider;
-use blackjack200\economy\provider\ProviderInterface;
 use GlobalLogger;
-use libasync\await\Await;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
@@ -21,7 +18,6 @@ use think\DbManager;
 
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
-	private static ProviderInterface $provider;
 	private static AwaitProviderInterface $awaitProvider;
 	private ThreadPoolExecutor $executor;
 
@@ -31,10 +27,6 @@ class EconomyLoader extends PluginBase {
 
 	public static function getAwaitProvider() : AwaitProviderInterface {
 		return self::$awaitProvider;
-	}
-
-	public static function getProvider() : ProviderInterface {
-		return self::$provider;
 	}
 
 	public function getExecutor() : ThreadPoolExecutor {
@@ -48,7 +40,6 @@ class EconomyLoader extends PluginBase {
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
 		$this->executor = self::createThreadPoolExecutor($this, $autoload, $config);
 		$this->executor->start();
-		self::$provider = new MySQLProvider('player_info', 'player_name');
 		self::$awaitProvider = new AwaitMySQLProvider('player_info', 'player_name', $this->executor);
 	}
 
