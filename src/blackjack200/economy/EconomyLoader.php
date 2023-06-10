@@ -66,7 +66,7 @@ class EconomyLoader extends PluginBase {
 				return [$db];
 			},
 			static fn($db) => $db->close()
-		), 1);
+		), 2);
 	}
 
 	protected function onDisable() : void {
