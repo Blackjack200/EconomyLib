@@ -8,33 +8,33 @@ use libasync\promise\PromiseInterface;
 
 interface AwaitProviderInterface {
 
-	public function initialize(string $name) : \Generator;
+	public function initialize(string $name) : bool;
 
-	public function add(string $name, string $type, int $delta) : \Generator;
+	public function add(string $name, string $type, int $delta) : bool;
 
-	public function set(string $name, string $col, $val) : \Generator;
+	public function set(string $name, string $col, $val) : bool;
 
-	public function has(string $name) : \Generator;
+	public function has(string $name) : bool;
 
-	public function get(string $name, string $type) : \Generator;
+	public function get(string $name, string $type) : mixed;
 
-	public function getALL(string $name) : \Generator;
+	public function getALL(string $name) : array;
 
-	public function asort(string $type, int $limit) : \Generator;
+	public function asort(string $type, int $limit) : array;
 
-	public function dsort(string $type, int $limit) : \Generator;
+	public function dsort(string $type, int $limit) : array;
 
-	public function remove(string $name) : \Generator;
+	public function remove(string $name) : bool;
 
-	public function rename(string $old, string $new) : \Generator;
+	public function rename(string $old, string $new) : bool;
 
-	public function addColumn(string $col, string $type, string $default) : \Generator;
+	public function addColumn(string $col, string $type, string $default) : bool;
 
-	public function hasColumn(string $col) : \Generator;
+	public function hasColumn(string $col) : bool;
 
-	public function getColumns() : \Generator;
+	public function getColumns() : array;
 
-	public function removeColumn(string $col) : \Generator;
+	public function removeColumn(string $col) : bool;
 
-	public function keys() : \Generator;
+	public function keys() : array;
 }

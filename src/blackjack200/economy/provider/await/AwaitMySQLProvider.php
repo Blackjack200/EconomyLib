@@ -2,7 +2,6 @@
 
 namespace blackjack200\economy\provider\await;
 
-use Generator;
 use libasync\await\Await;
 use libasync\runtime\AsyncRuntime;
 use think\db\exception\DataNotFoundException;
@@ -19,65 +18,16 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 		$this->migrator = new AwaitTableMigrator($table, $this->runtime);
 	}
 
-	public function keys() : Generator {
+	public function getRuntime() : AsyncRuntime { return $this->runtime; }
+
+	public function getTable() : string { return $this->table; }
+
+	public function getIndex() : string { return $this->index; }
+
+	public function initialize(string $name) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table) : array {
-			$arr = $db->table($table)->column($index);
-			sort($arr, SORT_STRING);
-			return $arr;
-		}, $this->runtime);
-	}
-
-	public function has(string $name) : Generator {
-		$table = $this->table;
-		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($name, $index, $table) : bool {
-			try {
-				$db->table($table)->where($index, $name)
-					->findOrFail($name);
-				return true;
-			} catch (DataNotFoundException) {
-			}
-			return false;
-		}, $this->runtime);
-	}
-
-	public function get(string $name, string $type) : Generator {
-		$table = $this->table;
-		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $type, $name) {
-			$ret = $db->table($table)->limit(1)
-				->where($index, $name)
-				->column($type);
-			return array_pop($ret);
-		}, $this->runtime);
-	}
-
-	public function getALL(string $name) : Generator {
-		$table = $this->table;
-		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $name) : array {
-			$ret = $db->table($table)->limit(1)
-				->where($index, $name)
-				->findOrEmpty();
-			unset($ret[$index]);
-			return $ret;
-		}, $this->runtime);
-	}
-
-	public function getTable() : string {
-		return $this->table;
-	}
-
-	public function getIndex() : string {
-		return $this->index;
-	}
-
-	public function initialize(string $name) : \Generator {
-		$table = $this->table;
-		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $name) : bool {
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $table, $name) : bool {
 			if ($db->table($table)->extra('IGNORE')->insert(
 				[$index => $name]
 			)) {
@@ -87,10 +37,10 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 		}, $this->runtime);
 	}
 
-	public function add(string $name, string $type, int $delta) : \Generator {
+	public function add(string $name, string $type, int $delta) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $delta, $type, $name) : bool {
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $table, $delta, $type, $name) : bool {
 			$db->table($table)->extra('IGNORE')->insert(
 				[$index => $name]
 			);
@@ -121,10 +71,10 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 		}, $this->runtime);
 	}
 
-	public function set(string $name, string $col, $val) : \Generator {
+	public function set(string $name, string $col, $val) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $val, $col, $name) : bool {
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $table, $val, $col, $name) : bool {
 			try {
 				$db->table($table)->where($index, $name)->findOrFail();
 				return (bool) $db->table($table)->where($index, $name)->update([$col => $val]);
@@ -136,14 +86,47 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 		}, $this->runtime);
 	}
 
-	public function asort(string $type, int $limit) : Generator {
-		return $this->sort('ASC', $limit, $type);
-	}
-
-	private function sort(string $mode, int $limit, string $type) : Generator {
+	public function has(string $name) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $mode, $limit, $table, $type) : array {
+		return Await::fiberAsync(static function(DbManager $db) use ($name, $index, $table) : bool {
+			try {
+				$db->table($table)->where($index, $name)
+					->findOrFail($name);
+				return true;
+			} catch (DataNotFoundException) {
+			}
+			return false;
+		}, $this->runtime);
+	}
+
+	public function get(string $name, string $type) : mixed {
+		$table = $this->table;
+		$index = $this->index;
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $table, $type, $name) : mixed {
+			$ret = $db->table($table)->limit(1)
+				->where($index, $name)
+				->column($type);
+			return array_pop($ret);
+		}, $this->runtime);
+	}
+
+	public function getALL(string $name) : array {
+		$table = $this->table;
+		$index = $this->index;
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $table, $name) : array {
+			$ret = $db->table($table)->limit(1)
+				->where($index, $name)
+				->findOrEmpty();
+			unset($ret[$index]);
+			return $ret;
+		}, $this->runtime);
+	}
+
+	private function sort(string $mode, int $limit, string $type) : array {
+		$table = $this->table;
+		$index = $this->index;
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $mode, $limit, $table, $type) : array {
 			return ($db->table($table)
 				->order($type, $mode)
 				->limit($limit)
@@ -152,25 +135,26 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 		}, $this->runtime);
 	}
 
-	public function dsort(string $type, int $limit) : Generator {
+	public function asort(string $type, int $limit) : array {
+		return $this->sort('ASC', $limit, $type);
+	}
+
+	public function dsort(string $type, int $limit) : array {
 		return $this->sort('DESC', $limit, $type);
 	}
 
-	public function remove(string $name) : Generator {
+	public function remove(string $name) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $name, $table) : bool {
-			if ($db->table($table)->where($index, $name)->delete() !== 0) {
-				return true;
-			}
-			return false;
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $name, $table) : bool {
+			return $db->table($table)->where($index, $name)->delete() !== 0;
 		}, $this->runtime);
 	}
 
-	public function rename(string $old, string $new) : Generator {
+	public function rename(string $old, string $new) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($old, $new, $index, $table) : bool {
+		return Await::fiberAsync(static function(DbManager $db) use ($old, $new, $index, $table) : bool {
 			$db->table($table)->extra('IGNORE')->insert(
 				[$index => $old]
 			);
@@ -188,23 +172,29 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 		}, $this->runtime);
 	}
 
-	public function addColumn(string $col, string $type, string $default) : Generator {
+	public function addColumn(string $col, string $type, string $default) : bool {
 		return $this->migrator->addColumns($col, $type, $default);
 	}
 
-	public function removeColumn(string $col) : Generator {
-		return $this->migrator->removeColumns($col);
-	}
-
-	public function hasColumn(string $col) : Generator {
+	public function hasColumn(string $col) : bool {
 		return $this->migrator->hasColumns($col);
 	}
 
-	public function getColumns() : Generator {
+	public function getColumns() : array {
 		return $this->migrator->getColumns();
 	}
 
-	public function getRuntime() : AsyncRuntime {
-		return $this->runtime;
+	public function removeColumn(string $col) : bool {
+		return $this->migrator->removeColumns($col);
+	}
+
+	public function keys() : array {
+		$table = $this->table;
+		$index = $this->index;
+		return Await::fiberAsync(static function(DbManager $db) use ($index, $table) : array {
+			$arr = $db->table($table)->column($index);
+			sort($arr, SORT_STRING);
+			return $arr;
+		}, $this->runtime);
 	}
 }
