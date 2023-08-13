@@ -4,8 +4,6 @@
 namespace blackjack200\economy\provider\await;
 
 
-use libasync\promise\PromiseInterface;
-
 interface AwaitProviderInterface {
 
 	public function initialize(string $name) : bool;

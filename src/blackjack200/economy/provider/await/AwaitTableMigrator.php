@@ -10,14 +10,14 @@ use think\DbManager;
 readonly class AwaitTableMigrator {
 
 	public function __construct(
-		private readonly string       $table,
-		private readonly AsyncRuntime $runtime,
+		private string       $table,
+		private AsyncRuntime $runtime,
 	) {
 	}
 
 	public function addColumns(string $column, string $type, string $default) : bool {
 		$table = $this->table;
-		return Await::fiberAsync(static function(DbManager $db) use ($type, $column, $table, $default) : bool {
+		return Await::async(static function(DbManager $db) use ($type, $column, $table, $default) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
@@ -30,16 +30,13 @@ readonly class AwaitTableMigrator {
 			if ($default !== '') {
 				$format .= " default " . addslashes($default);
 			}
-			if ($db->execute(sprintf($format, $table, addslashes($column))) === 0) {
-				return true;
-			}
-			return false;
+			return $db->execute(sprintf($format, $table, addslashes($column))) === 0;
 		}, $this->runtime);
 	}
 
 	public function removeColumns(string $column) : bool {
 		$table = $this->table;
-		return Await::fiberAsync(static function(DbManager $db) use ($table, $column) : bool {
+		return Await::async(static function(DbManager $db) use ($table, $column) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'] ?? null;
 			if ($dbName === null) {
@@ -63,7 +60,7 @@ readonly class AwaitTableMigrator {
 
 	public function hasColumns(string $column) : bool {
 		$table = $this->table;
-		return Await::fiberAsync(static function(DbManager $db) use ($table, $column) : bool {
+		return Await::async(static function(DbManager $db) use ($table, $column) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			return !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
@@ -74,7 +71,7 @@ readonly class AwaitTableMigrator {
 
 	public function getColumns() : array {
 		$table = $this->table;
-		return Await::fiberAsync(static function(DbManager $db) use ($table) : array {
+		return Await::async(static function(DbManager $db) use ($table) : array {
 			$result = $db->query("show columns from $table");
 			$names = [];
 			foreach ($result as $entry) {

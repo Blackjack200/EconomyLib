@@ -10,6 +10,7 @@ use GlobalLogger;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
+use libasync\runtime\AsyncExecutionEnvironment;
 use libasync\utils\LoggerUtils;
 use pocketmine\plugin\Plugin;
 use pocketmine\plugin\PluginBase;
@@ -46,26 +47,28 @@ class EconomyLoader extends PluginBase {
 	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, bool|string $config) : ThreadPoolExecutor {
 		return new ThreadPoolExecutor(new ThreadFactory(
 			Executor::class, LoggerUtils::makeLogger($plugin), $autoload,
-			static function(Executor $e) use ($config) : array {
-				$db = new DbManager();
-				$db->listen(function($sql, $runtime, $master) {
-					$log = static function(?string $s) : void {
-						if ($s !== null) {
-							GlobalLogger::get()->debug($s);
-						}
-					};
-					$log($sql);
-					$log($runtime);
-					$log($master);
-				});
-				$data = json_decode($config, true);
-				//TODO is there a better way to do this?
-				$data['connections']['mysql']['fields_cache'] = false;
-				$data['connections']['mysql']['fields_strict'] = false;
-				$db->setConfig($data);
-				return [$db];
-			},
-			static fn($db) => $db->close()
+			AsyncExecutionEnvironment::simple(
+				static function() use ($config) {
+					$db = new DbManager();
+					$db->listen(function($sql, $runtime, $master) {
+						$log = static function(?string $s) : void {
+							if ($s !== null) {
+								GlobalLogger::get()->debug($s);
+							}
+						};
+						$log($sql);
+						$log($runtime);
+						$log($master);
+					});
+					$data = json_decode($config, true, 512, JSON_THROW_ON_ERROR);
+					//TODO is there a better way to do this?
+					$data['connections']['mysql']['fields_cache'] = false;
+					$data['connections']['mysql']['fields_strict'] = false;
+					$db->setConfig($data);
+					return $db;
+				},
+				static fn($db) => $db->close()
+			)
 		), 2);
 	}
 
