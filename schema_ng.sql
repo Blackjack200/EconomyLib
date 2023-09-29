@@ -1,72 +1,76 @@
-create database `xyron`;
-use `xyron`;
+create database xyron;
+use xyron;
 
-create table `player_xuid`
+create table player_xuid
 (
-    `xuid`        varchar(128) unique not null,
-    `player_name` varchar(16) unique  not null,
-    primary key (`xuid`)
+    xuid        varchar(128) unique not null,
+    player_name varchar(16) unique  not null,
+    primary key (xuid)
 ) default charset = utf8;
 
-create table `player_account`
+create table player_account
 (
-    `xuid`  varchar(128) unique not null,
-    `kill`  integer unsigned    not null default 0,
-    `death` integer unsigned    not null default 0,
-    foreign key (`xuid`) references player_xuid (xuid),
-    primary key (`xuid`)
+    xuid varchar(128) unique not null,
+    foreign key (xuid) references player_xuid (xuid)
+        on delete cascade,
+    primary key (xuid)
 ) default charset = utf8;
 
-create table `rank_registry`
+create table rank_registry
 (
-    `basename` varchar(128) unique not null,
-    `display`  varchar(256)        not null,
-    primary key (`basename`)
+    basename varchar(128) unique not null,
+    display  varchar(256)        not null,
+    primary key (basename)
 ) default charset = utf8;
 
 create table rank_player_data
 (
-    xuid     varchar(128) unique not null,
-    basename varchar(128) unique not null,
-    has      boolean,
-    foreign key (xuid) references player_xuid (xuid),
-    foreign key (basename) references rank_registry (basename),
+    xuid     varchar(128) not null,
+    basename varchar(128) not null,
+    foreign key (xuid) references player_xuid (xuid)
+        on delete cascade,
+    foreign key (basename) references rank_registry (basename)
+        on delete cascade,
     primary key (xuid, basename)
+) default charset = utf8;
+
+create table statistics_data
+(
+    id   BIGINT unsigned unique not null auto_increment,
+    type varchar(128),
+    data json,
+    primary key (id)
+) default charset = utf8;
+
+create table statistics_player_data
+(
+    xuid varchar(128)    not null,
+    id   BIGINT unsigned not null,
+    foreign key (xuid) references player_xuid (xuid)
+        on delete cascade,
+    foreign key (id) references statistics_data (id)
+        on delete cascade,
+    primary key (xuid, id)
+) default charset = utf8;
+
+create table ban_info
+(
+    xuid     varchar(128) not null,
+    ban_time timestamp    not null,
+    ban_end  timestamp    not null,
+    source   varchar(128) not null default 'unknown',
+    reason   blob(25565)  not null default 'unknown reason',
+    foreign key (xuid) references player_xuid (xuid)
+        on delete cascade,
+    primary key (xuid)
 ) default charset = utf8;
 
 drop table rank_player_data;
 drop table rank_registry;
+drop table statistics_player_data;
+drop table statistics_data;
 drop table player_account;
 drop table player_xuid;
-
-#Register an account (xuid,name)
-insert player_xuid (xuid, player_name)
-values ('2525bf2d-45c0-11ee-948e-fa3c1c5507af', 'IPlayfordev');
-insert into player_account (xuid, `kill`, death)
-values ('2525bf2d-45c0-11ee-948e-fa3c1c5507af', 1000, 10);
-
-insert player_xuid (xuid, player_name)
-values ('53a84f74-cd21-4ae2-b783-48ef700fa379', 'TwoPandora94601');
-insert into player_account (xuid, `kill`, death)
-values ('53a84f74-cd21-4ae2-b783-48ef700fa379', 1000, 10);
-
-#get an account's data (name)
-select *
-from player_account
-where xuid = (select xuid from player_xuid where player_name = 'IPlayfordev');
-
-#update an account's data (name)
-update player_account
-set `kill`=1
-where xuid = (select xuid from player_xuid where player_name = 'IPlayfordev');
-
-#delete an account (name)
-delete
-from player_account
-where xuid = (select xuid from player_xuid where player_name = 'IPlayfordev');
-delete
-from rank_player_data
-where xuid = (select xuid from player_xuid where player_name = 'IPlayfordev');
 
 select *
 from player_xuid;
@@ -76,3 +80,7 @@ select *
 from rank_registry;
 select *
 from rank_player_data;
+select *
+from statistics_data;
+select *
+from statistics_player_data;
