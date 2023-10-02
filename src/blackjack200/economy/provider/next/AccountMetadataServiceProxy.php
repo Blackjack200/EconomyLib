@@ -3,7 +3,7 @@
 namespace blackjack200\economy\provider\next;
 
 use blackjack200\economy\EconomyLoader;
-use blackjack200\economy\provider\next\impl\AccountService;
+use blackjack200\economy\provider\next\impl\AccountMetadataService;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use libasync\await\Await;
 use think\DbManager;
@@ -17,8 +17,8 @@ use think\DbManager;
  * @method static array|null getAccountData(IdentifierProvider $id)
  * @method static void setAccountData(IdentifierProvider $id, array $data)
  **/
-class AccountServiceAsync {
+class AccountMetadataServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return Await::async(static fn(DbManager $db) => AccountService::$name($db, ...$arguments), EconomyLoader::getInstance()->getXyronExecutor());
+		return Await::async(static fn(DbManager $db) => AccountMetadataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getXyronExecutor());
 	}
 }

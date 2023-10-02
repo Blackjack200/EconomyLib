@@ -1,18 +1,13 @@
 create database xyron;
 use xyron;
+drop database xyron;
+drop table account_data;
 
-create table player_xuid
+create table account_metadata
 (
     xuid        varchar(128) unique not null,
-    player_name varchar(16) unique  not null,
-    primary key (xuid)
-) default charset = utf8;
-
-create table player_account
-(
-    xuid varchar(128) unique not null,
-    foreign key (xuid) references player_xuid (xuid)
-        on delete cascade,
+    player_name varchar(16)         not null,
+    data json,
     primary key (xuid)
 ) default charset = utf8;
 
@@ -25,13 +20,26 @@ create table rank_registry
 
 create table rank_player_data
 (
-    xuid     varchar(128) not null,
-    basename varchar(128) not null,
-    foreign key (xuid) references player_xuid (xuid)
+    xuid     varchar(128)    not null,
+    basename varchar(128)    not null,
+    deadline bigint unsigned not null,
+    foreign key (xuid) references account_metadata (xuid)
         on delete cascade,
     foreign key (basename) references rank_registry (basename)
         on delete cascade,
     primary key (xuid, basename)
+) default charset = utf8;
+
+create table ban_info
+(
+    xuid     varchar(128)    not null,
+    ban_time bigint unsigned not null,
+    ban_end  bigint unsigned not null,
+    source   varchar(128)    not null default 'unknown',
+    reason   varchar(256)     not null default 'unknown reason',
+    foreign key (xuid) references account_metadata (xuid)
+        on delete cascade,
+    primary key (xuid)
 ) default charset = utf8;
 
 create table statistics_data
@@ -46,36 +54,17 @@ create table statistics_player_data
 (
     xuid varchar(128)    not null,
     id   BIGINT unsigned not null,
-    foreign key (xuid) references player_xuid (xuid)
+    foreign key (xuid) references account_metadata (xuid)
         on delete cascade,
     foreign key (id) references statistics_data (id)
         on delete cascade,
     primary key (xuid, id)
 ) default charset = utf8;
 
-create table ban_info
-(
-    xuid     varchar(128) not null,
-    ban_time timestamp    not null,
-    ban_end  timestamp    not null,
-    source   varchar(128) not null default 'unknown',
-    reason   blob(25565)  not null default 'unknown reason',
-    foreign key (xuid) references player_xuid (xuid)
-        on delete cascade,
-    primary key (xuid)
-) default charset = utf8;
-
-drop table rank_player_data;
-drop table rank_registry;
-drop table statistics_player_data;
-drop table statistics_data;
-drop table player_account;
-drop table player_xuid;
-
 select *
-from player_xuid;
+from account_metadata;
 select *
-from player_account;
+from account_data;
 select *
 from rank_registry;
 select *

@@ -26,7 +26,7 @@ class StatisticsRepository {
 				self::COL_TYPE => $type,
 				self::COL_DATA => $data,
 			]);
-			$v = $db->table(SchemaConstants::TABLE_ACCOUNT);
+			$v = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA);
 			foreach ($xuids as $xuid) {
 				$v = $v->whereOr(SchemaConstants::COL_XUID, $xuid);
 			}
