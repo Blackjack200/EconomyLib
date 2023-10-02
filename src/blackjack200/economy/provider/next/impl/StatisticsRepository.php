@@ -31,7 +31,6 @@ class StatisticsRepository {
 				$v = $v->whereOr(SchemaConstants::COL_XUID, $xuid);
 			}
 			$validatedXuids = $v->find();
-			var_dump($validatedXuids);
 			$batchData = [];
 			foreach ($validatedXuids as $xuid) {
 				$batchData[] = [
