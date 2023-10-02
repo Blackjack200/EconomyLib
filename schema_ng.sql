@@ -1,13 +1,14 @@
+drop database xyron;
+
 create database xyron;
 use xyron;
-drop database xyron;
-drop table account_data;
 
 create table account_metadata
 (
-    xuid        varchar(128) unique not null,
-    player_name varchar(16)         not null,
-    data json,
+    xuid               varchar(128) unique not null,
+    last_modified_time bigint unsigned     not null,
+    player_name        varchar(16)         not null,
+    data               json,
     primary key (xuid)
 ) default charset = utf8;
 
@@ -36,7 +37,7 @@ create table ban_info
     ban_time bigint unsigned not null,
     ban_end  bigint unsigned not null,
     source   varchar(128)    not null default 'unknown',
-    reason   varchar(256)     not null default 'unknown reason',
+    reason   varchar(256)    not null default 'unknown reason',
     foreign key (xuid) references account_metadata (xuid)
         on delete cascade,
     primary key (xuid)
@@ -60,16 +61,3 @@ create table statistics_player_data
         on delete cascade,
     primary key (xuid, id)
 ) default charset = utf8;
-
-select *
-from account_metadata;
-select *
-from account_data;
-select *
-from rank_registry;
-select *
-from rank_player_data;
-select *
-from statistics_data;
-select *
-from statistics_player_data;

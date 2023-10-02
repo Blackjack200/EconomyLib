@@ -4,7 +4,11 @@
 namespace blackjack200\economy;
 
 
+use blackjack200\economy\provider\next\AccountMetadataServiceProxy;
+use blackjack200\economy\provider\next\impl\AccountDataService;
+use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use GlobalLogger;
+use libasync\await\Await;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
@@ -25,11 +29,10 @@ use think\DbManager;
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
 	private ThreadPoolExecutor $xyronExecutor;
-	private ThreadPoolExecutor $executor;
 
 	public static function getInstance() : self { return self::$instance; }
 
-	public function getExecutor() : ThreadPoolExecutor { return $this->executor; }
+	public function getExecutor() : ThreadPoolExecutor { return $this->xyronExecutor; }
 
 	public function getXyronExecutor() : ThreadPoolExecutor { return $this->xyronExecutor; }
 
@@ -43,8 +46,6 @@ class EconomyLoader extends PluginBase {
 		$this->saveResource('db_config.json');
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
 		require_once $autoload;
-		$this->executor = self::createThreadPoolExecutor($this, $autoload, 'mirekits', $config);
-		$this->executor->start();
 		$this->xyronExecutor = self::createThreadPoolExecutor($this, $autoload, 'xyron', $config, 2);
 		$this->xyronExecutor->start();
 		/*
@@ -90,22 +91,25 @@ class EconomyLoader extends PluginBase {
 			var_dump(RankServiceProxy::getRanksFromPlayer($id));
 		*//*
 		})->panic();*/
-		/*
-				Await::do(function() : void {
-					$id = IdentifierProvider::xuid('2535468735826146');
-					//AccountMetadataServiceProxy::delete($id);
+/*
+		Await::do(function() : void {
+			$changed = AccountMetadataServiceProxy::fixXuidNameAssociation('2535468735826146', 'IPlayfordev');
+			var_dump($changed);
+			$id = IdentifierProvider::xuid('2535468735826146');
+			//AccountMetadataServiceProxy::delete($id);
 
-					Await::async(static fn($db) => AccountDataService::register($db, $id), $this->getXyronExecutor());
-					Await::async(static fn($db) => AccountDataService::getAll($db, $id), $this->getXyronExecutor());
-					Await::async(static fn($db) => AccountDataService::set($db, $id, 'string', 'k', 'v'), $this->getXyronExecutor());
-					Await::async(static fn($db) => AccountDataService::set($db, $id, 'int', 'cnt', 1), $this->getXyronExecutor());
-					Await::async(static fn($db) => AccountDataService::update($db, $id, 'int', 'counter', static fn($x) => ((int) $x) + 1), $this->getXyronExecutor());
-					Await::async(static fn($db) => AccountDataService::update($db, $id, 'int', 'counter', static fn($x) => ((int) $x) + 1), $this->getXyronExecutor());
-					Await::async(static fn($db) => AccountDataService::update($db, $id, 'int', 'counter', static fn($x) => ((int) $x) + 1), $this->getXyronExecutor());
-					var_dump(Await::async(static fn($db) => AccountDataService::getAll($db, $id), $this->getXyronExecutor()));
+			//Await::async(static fn($db) => AccountDataService::register($db, $id), $this->getXyronExecutor());
+			var_dump(Await::async(static fn($db) => AccountDataService::getAll($db, $id), $this->getXyronExecutor()));
+			var_dump(Await::async(static fn($db) => AccountDataService::delete($db, $id,'k'), $this->getXyronExecutor()));
+			//Await::async(static fn($db) => AccountDataService::set($db, $id, 'string', 'k', 'v'), $this->getXyronExecutor());
+			//Await::async(static fn($db) => AccountDataService::set($db, $id, 'int', 'cnt', 1), $this->getXyronExecutor());
+			//Await::async(static fn($db) => AccountDataService::update($db, $id, 'int', 'counter', static fn($x) => ((int) $x) + 1), $this->getXyronExecutor());
+			//Await::async(static fn($db) => AccountDataService::update($db, $id, 'int', 'counter', static fn($x) => ((int) $x) + 1), $this->getXyronExecutor());
+			//Await::async(static fn($db) => AccountDataService::update($db, $id, 'int', 'counter', static fn($x) => ((int) $x) + 1), $this->getXyronExecutor());
+			var_dump(Await::async(static fn($db) => AccountDataService::getAll($db, $id), $this->getXyronExecutor()));
 
-					var_dump(Await::async(static fn($db) => iterator_to_array(AccountDataService::sort($db, 'dueln', 100, false)->indexByName(), true), $this->getXyronExecutor()));
-				})->panic();*/
+			var_dump(Await::async(static fn($db) => iterator_to_array(AccountDataService::sort($db, 'cnt', 100, false)->indexByName(), true), $this->getXyronExecutor()));
+		})->panic();*/
 	}
 
 	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, string $dbName, string $config, int $n = 1) : ThreadPoolExecutor {
@@ -125,9 +129,6 @@ class EconomyLoader extends PluginBase {
 						$log($master);
 					});
 					$data = json_decode($config, true, 512, JSON_THROW_ON_ERROR);
-					//TODO is there a better way to do this?
-					$data['connections']['mysql']['fields_cache'] = false;
-					$data['connections']['mysql']['fields_strict'] = false;
 					$data['connections']['mysql']['database'] = $dbName;
 					$db->setConfig($data);
 					$db->setCache(new Psr16Cache(PhpArrayAdapter::create('cache.dat', new ArrayAdapter(60))));
@@ -139,7 +140,6 @@ class EconomyLoader extends PluginBase {
 	}
 
 	protected function onDisable() : void {
-		$this->executor->shutdown();
 		$this->xyronExecutor->shutdown();
 	}
 }

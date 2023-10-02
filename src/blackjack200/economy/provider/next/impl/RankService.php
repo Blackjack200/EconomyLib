@@ -13,8 +13,8 @@ class RankService {
 		return $db->table(SchemaConstants::TABLE_RANK_REG)->column(SchemaConstants::COL_RANK_DISPLAY, SchemaConstants::COL_RANK_BASENAME);
 	}
 
-	public static function register(DbManager $db, string $basename, string $display) : void {
-		$db->transaction(static function() use ($display, $basename, $db) {
+	public static function register(DbManager $db, string $basename, string $display) : bool {
+		return $db->transaction(static function() use ($display, $basename, $db) {
 			$result = $db->table(SchemaConstants::TABLE_RANK_REG)
 				->where(SchemaConstants::COL_RANK_BASENAME, $basename)
 				->select();
@@ -25,17 +25,17 @@ class RankService {
 				if ($updated > 1) {
 					throw new LogicException("This should never happens. $basename '$display' $updated");
 				}
-				return;
+				return false;
 			}
-			$db->table(SchemaConstants::TABLE_RANK_REG)->insert([
+			return $db->table(SchemaConstants::TABLE_RANK_REG)->insert([
 				SchemaConstants::COL_RANK_BASENAME => $basename,
 				SchemaConstants::COL_RANK_DISPLAY => $display,
 			]);
 		});
 	}
 
-	public static function set(DbManager $db, string $basename, string $newDisplay) : void {
-		$db->transaction(static function() use ($newDisplay, $db, $basename) : void {
+	public static function set(DbManager $db, string $basename, string $newDisplay) : bool {
+		return $db->transaction(static function() use ($newDisplay, $db, $basename) : bool {
 			$rankExists = $db->table(SchemaConstants::TABLE_RANK_REG)
 				->where(SchemaConstants::COL_RANK_BASENAME, $basename)
 				->select()
@@ -44,24 +44,25 @@ class RankService {
 				throw new LogicException("This should never happens. Rank $basename, count($rankExists)");
 			}
 			if ($rankExists !== 0) {
-				$db->table(SchemaConstants::TABLE_RANK_REG)
+				return $db->table(SchemaConstants::TABLE_RANK_REG)
 					->where(SchemaConstants::COL_RANK_BASENAME, $basename)
 					->update([SchemaConstants::COL_RANK_DISPLAY => $newDisplay]);
 			}
+			return false;
 		});
 	}
 
-	public static function unregister(DbManager $db, string $basename) : void {
-		$db->table(SchemaConstants::TABLE_RANK_REG)
+	public static function unregister(DbManager $db, string $basename) : bool {
+		return $db->table(SchemaConstants::TABLE_RANK_REG)
 			->where(SchemaConstants::COL_RANK_BASENAME, $basename)
 			->delete();
 	}
 
-	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, DateTime|int $deadline) : void {
+	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, DateTime|int $deadline) : bool {
 		if ($deadline instanceof DateTime) {
 			$deadline = $deadline->getTimestamp();
 		}
-		$id($db, static function(string $xuid) use ($deadline, $rankBasename, $db) : void {
+		return $id($db, static function(string $xuid) use ($deadline, $rankBasename, $db) : bool {
 			$result = $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
@@ -73,22 +74,23 @@ class RankService {
 				throw new LogicException("This should never happens. Rank $rankBasename, " . count($rankExists));
 			}
 			if (count($result) === 0 && count($rankExists) === 1) {
-				$db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+				return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 					->insert([
 						SchemaConstants::COL_XUID => $xuid,
 						SchemaConstants::COL_RANK_BASENAME => $rankBasename,
 						SchemaConstants::COL_RANK_DEADLINE => $deadline,
 					]);
 			}
+			return false;
 		});
 	}
 
-	public static function removeRankFromPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename) : void {
-		$id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+	public static function removeRankFromPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename) : bool {
+		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 			->where(SchemaConstants::COL_XUID, $xuid)
 			->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
 			->delete()
-		);
+			, false);
 	}
 
 	/**
@@ -98,7 +100,7 @@ class RankService {
 		$results = $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 			->where(SchemaConstants::COL_XUID, $xuid)
 			->column([SchemaConstants::COL_RANK_BASENAME, SchemaConstants::COL_RANK_DEADLINE])
-		);
+			, []);
 		$merged = [];
 		//compound primary key (xuid,basename) is constrained to be unique
 		//so there is no duplicated entry.

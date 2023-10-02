@@ -5,7 +5,7 @@ namespace blackjack200\economy\provider\next\impl\tools;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
 use Generator;
 
-readonly final class SortedDataVisitor {
+readonly final class BidirectionalIndexedDataVisitor {
 	private function __construct(
 		private string $key,
 		private array  $data

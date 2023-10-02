@@ -12,10 +12,10 @@ use think\DbManager;
 /**
  * @method static string[] getRegistered()
  * @method static void register(string $basename, string $display)
- * @method static void set(string $basename, string $newDisplay)
- * @method static void unregister(string $basename)
- * @method static void addRankToPlayer(IdentifierProvider $id, string $rankBasename, DateTime|int $deadline)
- * @method static void removeRankFromPlayer(IdentifierProvider $id, string $rankBasename)
+ * @method static bool set(string $basename, string $newDisplay)
+ * @method static bool unregister(string $basename)
+ * @method static bool addRankToPlayer(IdentifierProvider $id, string $rankBasename, DateTime|int $deadline)
+ * @method static bool removeRankFromPlayer(IdentifierProvider $id, string $rankBasename)
  * @method static array<string, DateTime> getRanksFromPlayer(IdentifierProvider $id)
  */
 class RankServiceProxy {

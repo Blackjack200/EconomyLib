@@ -5,6 +5,7 @@ namespace blackjack200\economy\provider\next\impl\types;
 class SchemaConstants {
 	public const TABLE_ACCOUNT_METADATA = 'account_metadata';
 	public const COL_XUID = 'xuid';
+	public const COL_LAST_MODIFIED_TIME = 'last_modified_time';
 	public const COL_PLAYER_NAME = 'player_name';
 	public const COL_DATA = 'data';
 

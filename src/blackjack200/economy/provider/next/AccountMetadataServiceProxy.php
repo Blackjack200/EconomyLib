@@ -10,12 +10,11 @@ use think\DbManager;
 
 /**
  * @method static void register(string $xuid, string $name)
- * @method static void delete(IdentifierProvider $id)
+ * @method static bool delete(IdentifierProvider $id)
  * @method static string|null getName(string $xuid)
  * @method static string|null getXuid(string $name)
  * @method static bool fixXuidNameAssociation(string $xuid, string $name)
  * @method static array|null getAccountData(IdentifierProvider $id)
- * @method static void setAccountData(IdentifierProvider $id, array $data)
  **/
 class AccountMetadataServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {
