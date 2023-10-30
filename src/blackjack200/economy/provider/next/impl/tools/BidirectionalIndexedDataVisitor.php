@@ -5,6 +5,9 @@ namespace blackjack200\economy\provider\next\impl\tools;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
 use Generator;
 
+/**
+ * @template T of scalar
+ */
 readonly final class BidirectionalIndexedDataVisitor {
 	private function __construct(
 		private string $key,
@@ -17,7 +20,7 @@ readonly final class BidirectionalIndexedDataVisitor {
 	}
 
 	/**
-	 * @return Generator<void,string,scalar,void>
+	 * @return Generator<void,string,T,void>
 	 */
 	public function indexByName() : Generator {
 		foreach ($this->data as $col) {
@@ -30,7 +33,7 @@ readonly final class BidirectionalIndexedDataVisitor {
 
 
 	/**
-	 * @return Generator<void,string,scalar,void>
+	 * @return Generator<void,string,T,void>
 	 */
 	public function indexByXuid() : Generator {
 		foreach ($this->data as $col) {

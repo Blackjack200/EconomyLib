@@ -41,12 +41,14 @@ class AccountDataService {
 	}
 
 	public static function register(DbManager $db, IdentifierProvider $id) : void {
-		$id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-			->extra('IGNORE')
-			->insert([
-				SchemaConstants::COL_XUID => $xuid,
-				SchemaConstants::COL_DATA => '{}',
-			])
+		$id($db, static function(string $xuid) use ($db) {
+			$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+				->where(SchemaConstants::COL_XUID, $xuid)
+				->whereNull(SchemaConstants::COL_DATA)
+				->update([
+					SchemaConstants::COL_DATA => '{}',
+				]);
+		}
 		);
 	}
 

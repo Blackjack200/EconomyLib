@@ -29,6 +29,8 @@ abstract class BaseRowData {
 		$this->setup();
 	}
 
+	public function getKey() : string { return $this->key; }
+
 	/**
 	 * @return T
 	 */
@@ -83,7 +85,7 @@ abstract class BaseRowData {
 	}
 
 	public function add(PracticePlayer|string $player, int $delta) : bool {
-		$success = AccountDataProxy::updateAuto(IdentifierProvider::autoOrName($player), $this->key, static fn($old) => ((int) $old) + $delta);
+		$success = AccountDataProxy::update(IdentifierProvider::autoOrName($player), 'int', $this->key, static fn($old) => ((int) $old) + $delta);
 		if ($player instanceof PracticePlayer && $success) {
 			$this->refresh($player);
 		}

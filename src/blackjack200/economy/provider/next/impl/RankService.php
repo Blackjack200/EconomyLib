@@ -4,7 +4,6 @@ namespace blackjack200\economy\provider\next\impl;
 
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
-use DateTime;
 use LogicException;
 use think\DbManager;
 
@@ -58,10 +57,7 @@ class RankService {
 			->delete();
 	}
 
-	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, DateTime|int $deadline) : bool {
-		if ($deadline instanceof DateTime) {
-			$deadline = $deadline->getTimestamp();
-		}
+	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, int $deadline) : bool {
 		return $id($db, static function(string $xuid) use ($deadline, $rankBasename, $db) : bool {
 			$result = $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 				->where(SchemaConstants::COL_XUID, $xuid)
@@ -73,13 +69,24 @@ class RankService {
 			if (count($rankExists) > 1) {
 				throw new LogicException("This should never happens. Rank $rankBasename, " . count($rankExists));
 			}
-			if (count($result) === 0 && count($rankExists) === 1) {
-				return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
-					->insert([
-						SchemaConstants::COL_XUID => $xuid,
-						SchemaConstants::COL_RANK_BASENAME => $rankBasename,
-						SchemaConstants::COL_RANK_DEADLINE => $deadline,
-					]);
+			if (count($rankExists) === 1) {
+				if (count($result) === 0) {
+					return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+						->insert([
+							SchemaConstants::COL_XUID => $xuid,
+							SchemaConstants::COL_RANK_BASENAME => $rankBasename,
+							SchemaConstants::COL_RANK_DEADLINE => $deadline,
+						]);
+				} else {
+					return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+						->where(SchemaConstants::COL_XUID, $xuid)
+						->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
+						->update([
+							SchemaConstants::COL_XUID => $xuid,
+							SchemaConstants::COL_RANK_BASENAME => $rankBasename,
+							SchemaConstants::COL_RANK_DEADLINE => $deadline,
+						]);
+				}
 			}
 			return false;
 		});
@@ -94,7 +101,7 @@ class RankService {
 	}
 
 	/**
-	 * @return array<string, \DateTime>
+	 * @return array<string, int>
 	 */
 	public static function getRanksFromPlayer(DbManager $db, IdentifierProvider $id) : array {
 		$results = $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
@@ -106,9 +113,7 @@ class RankService {
 		//so there is no duplicated entry.
 		foreach ($results as $result) {
 			[$basename, $deadline] = [$result[SchemaConstants::COL_RANK_BASENAME], $result[SchemaConstants::COL_RANK_DEADLINE]];
-			$date = new DateTime();
-			$date->setTimestamp($deadline);
-			$merged[$basename] = $date;
+			$merged[$basename] = $deadline;
 		}
 		return $merged;
 	}

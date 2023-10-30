@@ -32,6 +32,14 @@ final class IdentifierProvider extends ThreadSafe {
 		return self::name($id);
 	}
 
+	public static function player(PracticePlayer $player) : self {
+		$info = $player->getPlayerInfo();
+		if ($info instanceof XboxLivePlayerInfo) {
+			return self::xuid($info->getXuid());
+		}
+		return self::name($player->getName());
+	}
+
 	public static function autoOrXuid(PracticePlayer|string $id) : self {
 		if ($id instanceof PracticePlayer) {
 			$info = $id->getPlayerInfo();

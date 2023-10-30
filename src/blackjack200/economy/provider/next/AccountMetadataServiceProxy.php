@@ -18,6 +18,6 @@ use think\DbManager;
  **/
 class AccountMetadataServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return Await::async(static fn(DbManager $db) => AccountMetadataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getXyronExecutor());
+		return Await::async(static fn(DbManager $db) => AccountMetadataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
 	}
 }

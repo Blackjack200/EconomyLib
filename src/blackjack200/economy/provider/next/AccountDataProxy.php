@@ -24,6 +24,10 @@ use think\DbManager;
  */
 class AccountDataProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return Await::async(static fn(DbManager $db) => AccountDataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getXyronExecutor());
+		return Await::async(static fn(DbManager $db) => AccountDataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
+	}
+
+	public static function formatKey(string $key) : string {
+		return str_replace('.', '_', $key);
 	}
 }
