@@ -69,7 +69,7 @@ abstract class BaseRowData {
 	 */
 	public function set(PracticePlayer|string $player, $data) : bool {
 		$validatedData = ($this->validator)($data);
-		$success = AccountDataProxy::setAuto(IdentifierProvider::autoOrName($player), $this->key, $validatedData);
+		$success = AccountDataProxy::set(IdentifierProvider::autoOrName($player), $this->key, $validatedData);
 		if ($player instanceof PracticePlayer && $success) {
 			$this->refresh($player);
 		}
@@ -85,7 +85,7 @@ abstract class BaseRowData {
 	}
 
 	public function add(PracticePlayer|string $player, int $delta) : bool {
-		$success = AccountDataProxy::update(IdentifierProvider::autoOrName($player), 'int', $this->key, static fn($old) => ((int) $old) + $delta);
+		$success = AccountDataProxy::update(IdentifierProvider::autoOrName($player), $this->key, static fn($old) => ((int) $old) + $delta);
 		if ($player instanceof PracticePlayer && $success) {
 			$this->refresh($player);
 		}

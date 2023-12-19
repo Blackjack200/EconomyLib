@@ -27,7 +27,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function initialize(string $name) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $name) : bool {
+		return Await::threadify(static function(DbManager $db) use ($index, $table, $name) : bool {
 			if ($db->table($table)->extra('IGNORE')->insert(
 				[$index => $name]
 			)) {
@@ -40,7 +40,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function add(string $name, string $type, int $delta) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $delta, $type, $name) : bool {
+		return Await::threadify(static function(DbManager $db) use ($index, $table, $delta, $type, $name) : bool {
 			$db->table($table)->extra('IGNORE')->insert(
 				[$index => $name]
 			);
@@ -74,7 +74,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function set(string $name, string $col, $val) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $val, $col, $name) : bool {
+		return Await::threadify(static function(DbManager $db) use ($index, $table, $val, $col, $name) : bool {
 			try {
 				$db->table($table)->where($index, $name)->findOrFail();
 				return (bool) $db->table($table)->where($index, $name)->update([$col => $val]);
@@ -89,7 +89,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function has(string $name) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($name, $index, $table) : bool {
+		return Await::threadify(static function(DbManager $db) use ($name, $index, $table) : bool {
 			try {
 				$db->table($table)->where($index, $name)
 					->findOrFail($name);
@@ -103,7 +103,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function get(string $name, string $type) : mixed {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $type, $name) : mixed {
+		return Await::threadify(static function(DbManager $db) use ($index, $table, $type, $name) : mixed {
 			$ret = $db->table($table)->limit(1)
 				->where($index, $name)
 				->column($type);
@@ -114,7 +114,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function getALL(string $name) : array {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table, $name) : array {
+		return Await::threadify(static function(DbManager $db) use ($index, $table, $name) : array {
 			$ret = $db->table($table)->limit(1)
 				->where($index, $name)
 				->findOrEmpty();
@@ -126,7 +126,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	private function sort(string $mode, int $limit, string $type) : array {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $mode, $limit, $table, $type) : array {
+		return Await::threadify(static function(DbManager $db) use ($index, $mode, $limit, $table, $type) : array {
 			return ($db->table($table)
 				->order($type, $mode)
 				->limit($limit)
@@ -146,7 +146,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function remove(string $name) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $name, $table) : bool {
+		return Await::threadify(static function(DbManager $db) use ($index, $name, $table) : bool {
 			return $db->table($table)->where($index, $name)->delete() !== 0;
 		}, $this->runtime);
 	}
@@ -154,7 +154,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function rename(string $old, string $new) : bool {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($old, $new, $index, $table) : bool {
+		return Await::threadify(static function(DbManager $db) use ($old, $new, $index, $table) : bool {
 			return $db->transaction(static function() use ($new, $old, $index, $table, $db) {
 				if ($db->table($table)->where($index, $old)->select()->isEmpty()) {
 					return true;
@@ -196,7 +196,7 @@ class AwaitMySQLProvider implements AwaitProviderInterface {
 	public function keys() : array {
 		$table = $this->table;
 		$index = $this->index;
-		return Await::async(static function(DbManager $db) use ($index, $table) : array {
+		return Await::threadify(static function(DbManager $db) use ($index, $table) : array {
 			$arr = $db->table($table)->column($index);
 			sort($arr, SORT_STRING);
 			return $arr;

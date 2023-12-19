@@ -19,6 +19,6 @@ use think\DbManager;
  */
 class RankServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return Await::async(static fn(DbManager $db) => RankService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
+		return Await::threadify(static fn(DbManager $db) => RankService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
 	}
 }

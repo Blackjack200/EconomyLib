@@ -40,39 +40,25 @@ class AccountDataService {
 		}, false);
 	}
 
-	public static function register(DbManager $db, IdentifierProvider $id) : void {
-		$id($db, static function(string $xuid) use ($db) {
-			$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->whereNull(SchemaConstants::COL_DATA)
-				->update([
-					SchemaConstants::COL_DATA => '{}',
-				]);
-		}
-		);
-	}
-
-	public static function set(DbManager $db, IdentifierProvider $id, string $type, string $key, $value) : bool {
+	public static function set(DbManager $db, IdentifierProvider $id, string $key, $value) : bool {
 		$data = [];
 		$data[SchemaConstants::COL_DATA . "->$key"] = $value;
 		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
-			->setFieldType([SchemaConstants::COL_DATA . "->$key" => $type])
 			->where(SchemaConstants::COL_XUID, $xuid)
 			->update($data)
 			, false);
 	}
 
-	public static function update(DbManager $db, IdentifierProvider $id, string $type, string $key, \Closure $operator) : bool {
-		return $id($db, static function(string $xuid) use ($type, $operator, $key, $db) : bool {
-			$old = self::internalGetData($db, $xuid, [SchemaConstants::COL_DATA . "->$key" => $type]) ?? [];
+	public static function update(DbManager $db, IdentifierProvider $id, string $key, \Closure $operator) : bool {
+		return $id($db, static function(string $xuid) use ($operator, $key, $db) : bool {
+			$old = self::internalGetData($db, $xuid) ?? [];
 
 			$data = [];
 			$data[SchemaConstants::COL_DATA . "->$key"] = $operator($old[$key] ?? null);
 
 			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 				->json([SchemaConstants::COL_DATA], true)
-				->setFieldType([SchemaConstants::COL_DATA . "->$key" => $type])
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->update($data);
 		}, false);
@@ -91,37 +77,16 @@ class AccountDataService {
 		}, false);
 	}
 
-	public static function setAuto(DbManager $db, IdentifierProvider $id, string $key, $value) : bool {
-		$data = [];
-		$data[SchemaConstants::COL_DATA . "->$key"] = $value;
-		$types = [];
-		$typ = self::getPdoType($data);
-		if ($typ !== null) {
-			$types = [SchemaConstants::COL_DATA . "->$key" => $typ];
-		}
-		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-			->json([SchemaConstants::COL_DATA], true)
-			->setFieldType($types)
-			->where(SchemaConstants::COL_XUID, $xuid)
-			->update($data)
-			, false);
-	}
-
 	public static function updateAuto(DbManager $db, IdentifierProvider $id, string $key, \Closure $operator) : bool {
 		return $id($db, static function(string $xuid) use ($operator, $key, $db) : bool {
-			$old = self::internalGetData($db, $xuid, [SchemaConstants::COL_DATA . "->$key" => $type]) ?? [];
+			$old = self::internalGetData($db, $xuid) ?? [];
 
 			$data = [];
 			$userNewData = $operator($old[$key] ?? null);
 			$data[SchemaConstants::COL_DATA . "->$key"] = $userNewData;
-			$types = [];
-			$typ = self::getPdoType($userNewData);
-			if ($typ !== null) {
-				$types = [SchemaConstants::COL_DATA . "->$key" => $typ];
-			}
+
 			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 				->json([SchemaConstants::COL_DATA], true)
-				->setFieldType($types)
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->update($data);
 		}, false);
@@ -152,10 +117,9 @@ class AccountDataService {
 		return BidirectionalIndexedDataVisitor::create($key, $sorted);
 	}
 
-	private static function internalGetData(DbManager $db, string $xuid, array $fieldType = []) : ?array {
+	private static function internalGetData(DbManager $db, string $xuid) : ?array {
 		$result = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
-			->setFieldType($fieldType)
 			->where(SchemaConstants::COL_XUID, $xuid)
 			->find();
 		return $result[SchemaConstants::COL_DATA] ?? null;

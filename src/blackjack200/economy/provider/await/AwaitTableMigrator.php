@@ -17,7 +17,7 @@ readonly class AwaitTableMigrator {
 
 	public function addColumns(string $column, string $type, string $default) : bool {
 		$table = $this->table;
-		return Await::async(static function(DbManager $db) use ($type, $column, $table, $default) : bool {
+		return Await::threadify(static function(DbManager $db) use ($type, $column, $table, $default) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			$has = !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
@@ -36,7 +36,7 @@ readonly class AwaitTableMigrator {
 
 	public function removeColumns(string $column) : bool {
 		$table = $this->table;
-		return Await::async(static function(DbManager $db) use ($table, $column) : bool {
+		return Await::threadify(static function(DbManager $db) use ($table, $column) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'] ?? null;
 			if ($dbName === null) {
@@ -60,7 +60,7 @@ readonly class AwaitTableMigrator {
 
 	public function hasColumns(string $column) : bool {
 		$table = $this->table;
-		return Await::async(static function(DbManager $db) use ($table, $column) : bool {
+		return Await::threadify(static function(DbManager $db) use ($table, $column) : bool {
 			$cfg = $db->getConfig();
 			$dbName = $cfg['connections'][$cfg['default']]['database'];
 			return !empty($db->query('select * from information_schema.COLUMNS where TABLE_SCHEMA = ? && TABLE_NAME = ? && COLUMN_NAME = ?;',
@@ -71,7 +71,7 @@ readonly class AwaitTableMigrator {
 
 	public function getColumns() : array {
 		$table = $this->table;
-		return Await::async(static function(DbManager $db) use ($table) : array {
+		return Await::threadify(static function(DbManager $db) use ($table) : array {
 			$result = $db->query("show columns from $table");
 			$names = [];
 			foreach ($result as $entry) {
