@@ -13,7 +13,6 @@ use think\DbManager;
 /**
  * @method static array|null getAll(IdentifierProvider $id)
  * @method static bool setAll(IdentifierProvider $id, $raw)
- * @method static bool register(IdentifierProvider $id)
  * @method static bool set(IdentifierProvider $id, string $key, $value)
  * @method static bool update(IdentifierProvider $id, string $key, Closure $operator)
  * @method static bool updateAll(IdentifierProvider $id, Closure $operator)
