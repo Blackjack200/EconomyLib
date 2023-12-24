@@ -77,19 +77,18 @@ class RankService {
 							SchemaConstants::COL_RANK_BASENAME => $rankBasename,
 							SchemaConstants::COL_RANK_DEADLINE => $deadline,
 						]);
-				} else {
-					return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
-						->where(SchemaConstants::COL_XUID, $xuid)
-						->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
-						->update([
-							SchemaConstants::COL_XUID => $xuid,
-							SchemaConstants::COL_RANK_BASENAME => $rankBasename,
-							SchemaConstants::COL_RANK_DEADLINE => $deadline,
-						]);
 				}
+				return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+					->where(SchemaConstants::COL_XUID, $xuid)
+					->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
+					->update([
+						SchemaConstants::COL_XUID => $xuid,
+						SchemaConstants::COL_RANK_BASENAME => $rankBasename,
+						SchemaConstants::COL_RANK_DEADLINE => $deadline,
+					]);
 			}
 			return false;
-		});
+		}, false);
 	}
 
 	public static function removeRankFromPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename) : bool {

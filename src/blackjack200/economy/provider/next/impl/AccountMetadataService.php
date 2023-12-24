@@ -14,7 +14,7 @@ class AccountMetadataService {
 			->insert([
 				SchemaConstants::COL_XUID => $xuid,
 				SchemaConstants::COL_LAST_MODIFIED_TIME => time(),
-				SchemaConstants::COL_DATA => '{}',
+				SchemaConstants::COL_DATA => '{"_":"_"}',
 				SchemaConstants::COL_PLAYER_NAME => $name,
 			]);
 	}
