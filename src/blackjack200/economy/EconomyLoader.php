@@ -4,11 +4,7 @@
 namespace blackjack200\economy;
 
 
-use blackjack200\economy\provider\next\AccountMetadataServiceProxy;
-use blackjack200\economy\provider\next\impl\AccountDataService;
-use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use GlobalLogger;
-use libasync\await\Await;
 use libasync\executor\Executor;
 use libasync\executor\ThreadFactory;
 use libasync\executor\ThreadPoolExecutor;
@@ -20,14 +16,15 @@ use pocketmine\plugin\PluginDescription;
 use pocketmine\plugin\PluginLoader;
 use pocketmine\plugin\ResourceProvider;
 use pocketmine\Server;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
-use Symfony\Component\Cache\Adapter\PhpArrayAdapter;
+use pocketmine\utils\Filesystem;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 use Symfony\Component\Cache\Psr16Cache;
 use Symfony\Component\Filesystem\Path;
 use think\DbManager;
 
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
+	protected $cacheDir;
 	private ThreadPoolExecutor $executor;
 
 	public static function getInstance() : self { return self::$instance; }
@@ -43,16 +40,23 @@ class EconomyLoader extends PluginBase {
 		$autoload = Path::join(__DIR__, '/../../../vendor/autoload.php');
 		$this->saveResource('db_config.json');
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
+		$this->cacheDir = Path::join(Server::getInstance()->getDataPath(), "cache");
 		require_once $autoload;
-		$this->executor = self::createThreadPoolExecutor($this, $autoload, 'xyron', $config, 2);
+		$this->executor = self::createThreadPoolExecutor($this, $autoload, $this->cacheDir, $config, 4);
 		$this->executor->start();
 	}
 
-	public static function createThreadPoolExecutor(Plugin $plugin, string $autoload, string $dbName, string $config, int $n = 1) : ThreadPoolExecutor {
+	public static function createThreadPoolExecutor(
+		Plugin $plugin,
+		string $autoload,
+		string $cacheDir,
+		string $config,
+		int    $n = 1
+	) : ThreadPoolExecutor {
 		return new ThreadPoolExecutor(new ThreadFactory(
 			Executor::class, LoggerUtils::makeLogger($plugin), $autoload,
 			AsyncExecutionEnvironment::simple(
-				static function() use ($dbName, $config) {
+				static function() use ($cacheDir, $config) {
 					$db = new DbManager();
 					$db->listen(function($sql, $runtime, $master) {
 						$log = static function(?string $s) : void {
@@ -65,9 +69,9 @@ class EconomyLoader extends PluginBase {
 						$log($master);
 					});
 					$data = json_decode($config, true, 512, JSON_THROW_ON_ERROR);
-					$data['connections']['mysql']['database'] = $dbName;
+
 					$db->setConfig($data);
-					$db->setCache(new Psr16Cache(PhpArrayAdapter::create('cache.dat', new ArrayAdapter(60))));
+					$db->setCache(new Psr16Cache(new FilesystemAdapter("db", 30, $cacheDir)));
 					return $db;
 				},
 				static fn($db) => $db->close()
@@ -77,5 +81,6 @@ class EconomyLoader extends PluginBase {
 
 	protected function onDisable() : void {
 		$this->executor->shutdown();
+		Filesystem::recursiveUnlink($this->cacheDir);
 	}
 }

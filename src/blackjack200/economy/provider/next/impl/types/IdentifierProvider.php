@@ -55,7 +55,6 @@ final class IdentifierProvider extends ThreadSafe {
 		return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($name) {
 			return $db->transaction(static function() use ($default, $name, $db, $other) {
 				$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-					->cache()
 					->where(SchemaConstants::COL_PLAYER_NAME, $name)
 					->order(SchemaConstants::COL_LAST_MODIFIED_TIME, 'desc')
 					->column(SchemaConstants::COL_XUID);
