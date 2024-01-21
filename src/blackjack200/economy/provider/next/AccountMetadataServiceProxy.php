@@ -5,19 +5,20 @@ namespace blackjack200\economy\provider\next;
 use blackjack200\economy\EconomyLoader;
 use blackjack200\economy\provider\next\impl\AccountMetadataService;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
+use Generator;
 use libasync\await\Await;
 use think\DbManager;
 
 /**
- * @method static void register(string $xuid, string $name)
- * @method static bool delete(IdentifierProvider $id)
- * @method static string|null getName(string $xuid)
- * @method static string|null getXuid(string $name)
- * @method static bool fixXuidNameAssociation(string $xuid, string $name)
- * @method static array|null getAccountData(IdentifierProvider $id)
+ * @method static Generator|void register(string $xuid, string $name)
+ * @method static Generator|bool delete(IdentifierProvider $id)
+ * @method static Generator|string|null getName(string $xuid)
+ * @method static Generator|string|null getXuid(string $name)
+ * @method static Generator|bool fixXuidNameAssociation(string $xuid, string $name)
+ * @method static Generator|array|null getAccountData(IdentifierProvider $id)
  **/
 class AccountMetadataServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return Await::threadify(static fn(DbManager $db) => AccountMetadataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
+		return yield from Await::threadify(static fn(DbManager $db) => AccountMetadataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
 	}
 }
