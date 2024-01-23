@@ -119,6 +119,7 @@ class AccountDataService {
 
 	private static function internalGetData(DbManager $db, string $xuid) : ?array {
 		$result = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+			->cache(true, 5)
 			->json([SchemaConstants::COL_DATA], true)
 			->where(SchemaConstants::COL_XUID, $xuid)
 			->find();

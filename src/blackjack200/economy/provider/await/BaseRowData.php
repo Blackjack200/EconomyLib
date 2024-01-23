@@ -57,11 +57,11 @@ abstract class BaseRowData {
 	}
 
 	public function refresh(PracticePlayer $player) : \Generator {
-		yield from $this->get($player);
+		return yield from $this->get($player);
 	}
 
 	public function reset(PracticePlayer|string $player) : \Generator {
-		yield from $this->set($player, $this->default);
+		return yield from $this->set($player, $this->default);
 	}
 
 	/**
@@ -71,7 +71,7 @@ abstract class BaseRowData {
 		$validatedData = ($this->validator)($data);
 		$success = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($player), $this->key, $validatedData);
 		if ($player instanceof PracticePlayer && $success) {
-			$this->refresh($player);
+			yield from $this->refresh($player);
 		}
 		return $success;
 	}
@@ -79,7 +79,7 @@ abstract class BaseRowData {
 	public function delete(PracticePlayer|string $player) : \Generator|bool {
 		$success = yield from AccountDataProxy::delete(IdentifierProvider::autoOrName($player), $this->key);
 		if ($player instanceof PracticePlayer && $success) {
-			$this->refresh($player);
+			yield from $this->refresh($player);
 		}
 		return $success;
 	}
@@ -87,7 +87,7 @@ abstract class BaseRowData {
 	public function add(PracticePlayer|string $player, int $delta) : \Generator|bool {
 		$success = yield from AccountDataProxy::update(IdentifierProvider::autoOrName($player), $this->key, static fn($old) => ((int) $old) + $delta);
 		if ($player instanceof PracticePlayer && $success) {
-			$this->refresh($player);
+			yield from $this->refresh($player);
 		}
 		return $success;
 	}
