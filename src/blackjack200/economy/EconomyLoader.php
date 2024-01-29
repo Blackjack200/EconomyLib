@@ -5,9 +5,9 @@ namespace blackjack200\economy;
 
 
 use GlobalLogger;
-use libasync\executor\Executor;
-use libasync\executor\ThreadFactory;
-use libasync\executor\ThreadPoolExecutor;
+use libasync\executor\ExecutorPool;
+use libasync\executor\ExecutorWorker;
+use libasync\executor\WorkerFactory;
 use libasync\runtime\AsyncExecutionEnvironment;
 use libasync\utils\LoggerUtils;
 use pocketmine\plugin\Plugin;
@@ -25,11 +25,11 @@ use think\DbManager;
 class EconomyLoader extends PluginBase {
 	private static ?self $instance = null;
 	protected $cacheDir;
-	private ThreadPoolExecutor $executor;
+	private ExecutorPool $executor;
 
 	public static function getInstance() : self { return self::$instance; }
 
-	public function getExecutor() : ThreadPoolExecutor { return $this->executor; }
+	public function getExecutor() : ExecutorPool { return $this->executor; }
 
 	public function __construct(PluginLoader $loader, Server $server, PluginDescription $description, string $dataFolder, string $file, ResourceProvider $resourceProvider) {
 		self::$instance = $this;
@@ -52,9 +52,9 @@ class EconomyLoader extends PluginBase {
 		string $cacheDir,
 		string $config,
 		int    $n = 1
-	) : ThreadPoolExecutor {
-		return new ThreadPoolExecutor(new ThreadFactory(
-			Executor::class, LoggerUtils::makeLogger($plugin), $autoload,
+	) : ExecutorPool {
+		return new ExecutorPool(new WorkerFactory(
+			ExecutorWorker::class, LoggerUtils::makeLogger($plugin), $autoload,
 			AsyncExecutionEnvironment::simple(
 				static function() use ($cacheDir, $config) {
 					$db = new DbManager();
