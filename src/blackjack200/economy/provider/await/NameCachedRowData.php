@@ -7,7 +7,7 @@ use prokits\player\PracticePlayer;
 /**
  * @template T of scalar
  */
-class NameCachedRowData extends RowData {
+class NameCachedRowData extends BaseRowData {
 	private array $map = [];
 	private int $maxCount = 1024;
 
@@ -15,8 +15,8 @@ class NameCachedRowData extends RowData {
 		return $this->map[is_string($player) ? $player : $player->getName()] ?? null;
 	}
 
-	protected function writeCache(mixed $data, PracticePlayer|string $player) : void {
-		$this->map[$player->getName()] = $data;
+	public function writeCache(mixed $data, PracticePlayer|string $player) : void {
+		$this->map[is_string($player) ? $player : $player->getName()] = $data;
 		if (count($this->map) > $this->maxCount) {
 			$this->clearCache();
 		}

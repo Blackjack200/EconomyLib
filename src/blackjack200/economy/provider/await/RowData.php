@@ -19,7 +19,7 @@ class RowData extends BaseRowData {
 		return $this->map[$player] ?? null;
 	}
 
-	protected function writeCache(mixed $data, PracticePlayer|string $player) : void {
+	public function writeCache(mixed $data, PracticePlayer|string $player) : void {
 		$this->map[$player] = $data;
 	}
 
