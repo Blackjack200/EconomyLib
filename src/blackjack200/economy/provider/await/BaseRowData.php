@@ -59,7 +59,7 @@ abstract class BaseRowData {
 	/**
 	 * @return T|\Generator
 	 */
-	public function getCachedYield(PracticePlayer|string $player) {
+	public function getCachedKeepLatest(PracticePlayer|string $player) {
 		$data = $this->readCache($player);
 		if ($data === null) {
 			return yield from $this->get($player);
