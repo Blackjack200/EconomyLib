@@ -12,7 +12,7 @@ class NameCachedRowData extends RowData {
 	private int $maxCount = 1024;
 
 	protected function readCache(PracticePlayer|string $player) : mixed {
-		return $this->map[$player->getName()] ?? null;
+		return $this->map[is_string($player) ? $player : $player->getName()] ?? null;
 	}
 
 	protected function writeCache(mixed $data, PracticePlayer|string $player) : void {

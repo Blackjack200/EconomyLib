@@ -6,6 +6,7 @@ use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\tools\BidirectionalIndexedDataVisitor;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use libasync\await\Await;
+use libasync\await\AwaitSignal;
 use prokits\player\PracticePlayer;
 
 /**
@@ -54,6 +55,18 @@ abstract class BaseRowData {
 			Await::do($this->get($player))->logError();
 		}
 		return $data ?? $this->default;
+	}
+
+	/**
+	 * @return T|\Generator
+	 */
+	public function getOrWriteCache(PracticePlayer|string $player) {
+		yield AwaitSignal::SIG_WAIT;
+		$data = $this->readCache($player);
+		if ($data === null) {
+			return yield from $this->get($player);
+		}
+		return $data;
 	}
 
 	public function refresh(PracticePlayer $player) : \Generator {
