@@ -68,7 +68,7 @@ abstract class BaseRowData {
 		return $data;
 	}
 
-	public function refresh(PracticePlayer $player) : \Generator {
+	public function refresh(PracticePlayer|string $player) : \Generator {
 		return yield from $this->get($player);
 	}
 
@@ -97,8 +97,11 @@ abstract class BaseRowData {
 	}
 
 	public function add(PracticePlayer|string $player, int $delta) : \Generator|bool {
+		$oldVAl = $this->readCache($player) ?? $this->default;
+		//lol
+		$this->writeCache($oldVAl + $delta, $player);
 		$success = yield from AccountDataProxy::update(IdentifierProvider::autoOrName($player), $this->key, static fn($old) => ((int) $old) + $delta);
-		if ($player instanceof PracticePlayer && $success) {
+		if ($success) {
 			yield from $this->refresh($player);
 		}
 		return $success;
