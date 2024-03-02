@@ -51,6 +51,7 @@ abstract class BaseRowData {
 	public function getCached(PracticePlayer|string $player) {
 		$data = $this->readCache($player);
 		if ($data === null) {
+			$this->writeCache($this->default, $player);
 			Await::do($this->get($player))->logError();
 		}
 		return $data ?? $this->default;
@@ -62,6 +63,7 @@ abstract class BaseRowData {
 	public function getCachedKeepLatest(PracticePlayer|string $player) {
 		$data = $this->readCache($player);
 		if ($data === null) {
+			$this->writeCache($this->default, $player);
 			return yield from $this->get($player);
 		}
 		Await::do($this->get($player))->logError();
