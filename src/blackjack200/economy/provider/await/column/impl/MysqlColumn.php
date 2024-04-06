@@ -3,8 +3,8 @@
 namespace blackjack200\economy\provider\await\column\impl;
 
 use blackjack200\economy\provider\await\column\Column;
-use blackjack200\economy\provider\await\column\DataStatus;
-use blackjack200\economy\provider\await\column\WeakLRUCache;
+use blackjack200\economy\provider\await\column\DataLock;
+use blackjack200\economy\provider\await\column\WeakOrStrongCache;
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use libasync\await\Await;
@@ -14,8 +14,8 @@ use prokits\player\PracticePlayer;
  * @template T of scalar
  */
 class MysqlColumn implements Column {
-	/** @var WeakLRUCache<PracticePlayer,string,T|DataStatus> */
-	protected WeakLRUCache $cache;
+	/** @var WeakOrStrongCache<PracticePlayer,string,T|DataLock> */
+	protected WeakOrStrongCache $cache;
 
 	public function __construct(
 		protected readonly string   $key,
@@ -24,7 +24,7 @@ class MysqlColumn implements Column {
 		/** @var \Closure(mixed|null):T $hydrator */
 		protected readonly \Closure $hydrator,
 	) {
-		$this->cache = new WeakLRUCache(50, 100);
+		$this->cache = new WeakOrStrongCache(50, 3000);
 	}
 
 	public function getKey() : string {
@@ -39,21 +39,20 @@ class MysqlColumn implements Column {
 		$cached = yield from $this->waitCacheReady($player);
 
 		if ($cached !== null) {
-			/** @noinspection PhpBooleanCanBeSimplifiedInspection */
-			false && yield;
+			yield;
 			return $cached;
 		}
-		return yield from $this->get($player);
+		return yield from $this->syncCache($player);
 	}
 
 	public function getCachedKeepLatest(PracticePlayer|string $player) {
 		$data = yield from $this->getCached($player);
-		yield from $this->syncCache($player);
+		Await::do($this->syncCache($player))->logError();
 		return $data;
 	}
 
 	public function refresh(PracticePlayer|string $player) : \Generator {
-		yield from $this->get($player);
+		yield from $this->syncCache($player);
 	}
 
 	public function reset(PracticePlayer|string $player) : \Generator {
@@ -62,10 +61,14 @@ class MysqlColumn implements Column {
 
 	public function set(PracticePlayer|string $player, $data) : \Generator|bool {
 		$data = ($this->hydrator)($data);
+
+		$this->cache->put($player, $data);
 		$success = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($player), $this->key, $data);
+
 		if ($success) {
-			yield from $this->waitCacheReady($player);
-			$this->cache->put($player, $data);
+			Await::do($this->syncCache($player))->logError();
+		} else {
+			yield from $this->syncCache($player);
 		}
 		return $success;
 	}
@@ -73,15 +76,15 @@ class MysqlColumn implements Column {
 	public function delete(PracticePlayer|string $player) : \Generator|bool {
 		$success = yield from AccountDataProxy::delete(IdentifierProvider::autoOrName($player), $this->key);
 		if ($success) {
-			yield from $this->waitCacheReady($player);
-			$this->cache->clear($player);
+			Await::do($this->syncCache($player))->panic();
 		}
 		return $success;
 	}
 
 	protected function waitCacheReady(PracticePlayer|string $player) : \Generator {
 		$cached = $this->cache->get($player);
-		while ($cached === DataStatus::ACQUIRING) {
+		while ($cached instanceof DataLock) {
+			var_dump("RD");
 			yield from Await::udelay(50);
 			$cached = $this->cache->get($player);
 		}
@@ -90,12 +93,22 @@ class MysqlColumn implements Column {
 
 	protected function syncCache(PracticePlayer|string $player) {
 		$this->waitCacheReady($player);
-		$this->cache->put($player, DataStatus::ACQUIRING);
+		$lock = new DataLock();
+		$this->cache->put($player, $lock);
 		$all = yield from AccountDataProxy::getAll(IdentifierProvider::autoOrName($player));
 		/** @var T $fetchedRawData */
 		$fetchedRawData = $all[$this->key] ?? $this->default;
 		$data = ($this->hydrator)($fetchedRawData);
+		/*
+				$cached = $this->cache->get($player);
+				//a new synchronization is running, so drop the old one
+				if ($cached instanceof DataLock && $cached !== $lock) {
+					return yield from $this->waitCacheReady($player);
+				}
+		*/
 		$this->cache->put($player, $data);
 		return $data;
 	}
+
+	public function getCache() : WeakOrStrongCache { return $this->cache; }
 }

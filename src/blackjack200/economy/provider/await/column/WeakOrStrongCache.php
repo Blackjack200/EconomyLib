@@ -2,7 +2,8 @@
 
 namespace blackjack200\economy\provider\await\column;
 
-use blackjack200\cache\LRUCache;
+use blackjack200\cache\CacheInterface;
+use blackjack200\cache\MemoryCache;
 use WeakMap;
 
 /**
@@ -10,18 +11,18 @@ use WeakMap;
  * @template StrongK of scalar
  * @template V
  */
-class WeakLRUCache {
+class WeakOrStrongCache {
 	/** @var WeakMap<WeakK,V> */
 	protected WeakMap $weak;
-	/** @var LRUCache<V> */
-	protected LRUCache $strong;
+	/** @var CacheInterface<V> */
+	protected CacheInterface $strong;
 
 	public function __construct(
 		private readonly int $weakCapacity,
-		private readonly int $strongCapacity,
+		private readonly int $lruCapacity,
 	) {
 		$this->weak = new WeakMap();
-		$this->strong = new LRUCache($this->strongCapacity);
+		$this->strong = new MemoryCache();
 	}
 
 	/**
