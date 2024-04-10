@@ -84,7 +84,6 @@ class MysqlColumn implements Column {
 	protected function waitCacheReady(PracticePlayer|string $player) : \Generator {
 		$cached = $this->cache->get($player);
 		while ($cached instanceof DataLock) {
-			var_dump("RD");
 			yield from Await::udelay(50);
 			$cached = $this->cache->get($player);
 		}
