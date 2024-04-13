@@ -19,7 +19,7 @@ class MysqlIntegerColumn extends MysqlColumn implements NumericColumn {
 	}
 
 	public function dsort(int $limit) : Generator|BidirectionalIndexedDataVisitor {
-		return yield from AccountDataProxy::sort($this->key, $limit, true);
+		return yield from AccountDataProxy::sort($this->key, $limit, false);
 	}
 
 	public function asort(int $limit) : Generator|BidirectionalIndexedDataVisitor {
