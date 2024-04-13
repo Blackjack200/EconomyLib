@@ -42,6 +42,7 @@ class AccountDataService {
 
 	public static function set(DbManager $db, IdentifierProvider $id, string $key, $value) : bool {
 		$data = [];
+		$key = addslashes($key);
 		$data[SchemaConstants::COL_DATA . "->$key"] = $value;
 		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
@@ -51,6 +52,7 @@ class AccountDataService {
 	}
 
 	public static function update(DbManager $db, IdentifierProvider $id, string $key, \Closure $operator) : bool {
+		$key = addslashes($key);
 		return $id($db, static function(string $xuid) use ($operator, $key, $db) : bool {
 			$old = self::internalGetData($db, $xuid) ?? [];
 
@@ -65,6 +67,7 @@ class AccountDataService {
 	}
 
 	public static function delete(DbManager $db, IdentifierProvider $id, string $key) : bool {
+		$key = addslashes($key);
 		return $id($db, static function(string $xuid) use ($key, $db) : bool {
 			$old = self::internalGetData($db, $xuid) ?? [];
 			unset($old[$key]);
@@ -78,6 +81,7 @@ class AccountDataService {
 	}
 
 	public static function updateAuto(DbManager $db, IdentifierProvider $id, string $key, \Closure $operator) : bool {
+		$key = addslashes($key);
 		return $id($db, static function(string $xuid) use ($operator, $key, $db) : bool {
 			$old = self::internalGetData($db, $xuid) ?? [];
 
@@ -107,11 +111,12 @@ class AccountDataService {
 	}
 
 	public static function sort(DbManager $db, string $key, int $n, bool $asc) : BidirectionalIndexedDataVisitor {
+		$key = addslashes($key);
 		$mode = $asc ? 'ASC' : 'DESC';
 		//TODO avoid inject
 		$sorted = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
-			->orderRaw(SchemaConstants::COL_DATA . "->'$.$key' $mode")
+			->orderRaw("cast(json_extract(data, concat('$.', '" . $key . "')) as signed) $mode")
 			->limit($n)
 			->select()->toArray();
 		return BidirectionalIndexedDataVisitor::create($key, $sorted);
