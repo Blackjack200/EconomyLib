@@ -116,6 +116,9 @@ class MysqlColumn implements Column {
 		if ($cached instanceof DataLock) {
 			return $this->default;
 		}
+		if ($cached === null) {
+			Await::do($this->syncCache($player))->logError();
+		}
 		return $cached ?? $this->default;
 	}
 }
