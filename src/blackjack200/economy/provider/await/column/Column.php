@@ -22,6 +22,11 @@ interface Column {
 	public function getCached(PracticePlayer|string $player);
 
 	/**
+	 * @return T
+	 */
+	public function readCached(PracticePlayer|string $player);
+
+	/**
 	 * @return T|\Generator
 	 */
 	public function getCachedKeepLatest(PracticePlayer|string $player);

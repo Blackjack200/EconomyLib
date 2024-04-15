@@ -110,4 +110,12 @@ class MysqlColumn implements Column {
 	}
 
 	public function getCache() : WeakOrStrongCache { return $this->cache; }
+
+	public function readCached(PracticePlayer|string $player) {
+		$cached = $this->cache->get($player);
+		if ($cached instanceof DataLock) {
+			return $this->default;
+		}
+		return $cached ?? $this->default;
+	}
 }
