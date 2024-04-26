@@ -7,31 +7,9 @@ use prokits\player\PracticePlayer;
 /**
  * @template T
  */
-interface Column {
-
+interface Column extends ReadonlyCachedData {
 	public function getKey() : string;
 
-	/**
-	 * @return T
-	 */
-	public function get(PracticePlayer|string $player);
-
-	/**
-	 * @return T
-	 */
-	public function getCached(PracticePlayer|string $player);
-
-	/**
-	 * @return T
-	 */
-	public function readCached(PracticePlayer|string $player);
-
-	/**
-	 * @return T|\Generator
-	 */
-	public function getCachedKeepLatest(PracticePlayer|string $player);
-
-	public function refresh(PracticePlayer|string $player) : \Generator;
 
 	public function reset(PracticePlayer|string $player) : \Generator;
 
