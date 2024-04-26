@@ -58,7 +58,7 @@ class SharedData implements SharedDataHolder {
 		if ($optimistic) {
 			yield from $this->value->trySet(function($set, $get) use ($value, $key) {
 				$v = $get();
-				if ($v !== null) {
+				if ($v !== null && isset($v[$key])) {
 					$v[$key] = $value;
 					$set($v);
 				}
@@ -106,8 +106,8 @@ class SharedData implements SharedDataHolder {
 		if ($optimistic) {
 			yield from $this->value->trySet(function($set, $get) use ($operator, $key) {
 				$v = $get();
-				if ($v !== null) {
-					$v[$key] = $operator($v);
+				if ($v !== null && isset($v[$key])) {
+					$v[$key] = $operator($v[$key]);
 					$set($v);
 				}
 			}, $result);
