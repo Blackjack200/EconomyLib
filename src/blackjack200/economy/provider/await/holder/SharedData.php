@@ -4,6 +4,7 @@ namespace blackjack200\economy\provider\await\holder;
 
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
+use Closure;
 use libasync\await\lock\rw\LockedValue;
 use prokits\player\PracticePlayer;
 use WeakMap;
@@ -99,5 +100,20 @@ class SharedData implements SharedDataHolder {
 			return $validator($last[$key] ?? null);
 		}
 		return $validator(null);
+	}
+
+	public function update(string $key, Closure $operator, bool $optimistic) {
+		if ($optimistic) {
+			yield from $this->value->trySet(function($set, $get) use ($operator, $key) {
+				$v = $get();
+				if ($v !== null) {
+					$v[$key] = $operator($v);
+					$set($v);
+				}
+			}, $result);
+		}
+		$success = yield from AccountDataProxy::update($this->id, $key, $operator);
+		yield from $this->sync();
+		return $success;
 	}
 }

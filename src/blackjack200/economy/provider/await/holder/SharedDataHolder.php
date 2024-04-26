@@ -2,6 +2,7 @@
 
 namespace blackjack200\economy\provider\await\holder;
 
+use Closure;
 use Generator;
 
 interface SharedDataHolder {
@@ -25,6 +26,13 @@ interface SharedDataHolder {
 	 * @return Generator<void,void,void,bool>|bool
 	 */
 	public function set(string $key, $value, bool $optimistic);
+
+	/**
+	 * @template T
+	 * @param Closure():T $operator
+	 * @return Generator<void,void,void,bool>|bool
+	 */
+	public function update(string $key, Closure $operator, bool $optimistic);
 
 	/**
 	 * @return Generator<void,void,void,bool>|bool
