@@ -2,15 +2,16 @@
 
 namespace blackjack200\economy\provider\next\impl\types;
 
+use blackjack200\economy\provider\await\column\WeakOrStrongCache;
 use Closure;
 use pmmp\thread\ThreadSafe;
 use pocketmine\player\XboxLivePlayerInfo;
 use prokits\player\PracticePlayer;
 use think\DbManager;
-use WeakMap;
 
 final class IdentifierProvider extends ThreadSafe {
-	private static WeakMap $playerCache;
+	/** @var WeakOrStrongCache<PracticePlayer,string,self> */
+	private static WeakOrStrongCache $playerCache;
 
 	private function __construct(private Closure $closure) { }
 
@@ -26,44 +27,30 @@ final class IdentifierProvider extends ThreadSafe {
 
 	public static function autoOrName(PracticePlayer|string $id) : self {
 		if (!isset(self::$playerCache)) {
-			self::$playerCache = new WeakMap();
+			self::$playerCache = new WeakOrStrongCache(100, 100000);
 		}
 		if ($id instanceof PracticePlayer) {
-			if (isset(self::$playerCache[$id])) {
-				return self::$playerCache[$id];
+			$cc = self::$playerCache->get($id);
+			if ($cc !== null) {
+				return $cc;
 			}
 			$info = $id->getPlayerInfo();
 			if ($info instanceof XboxLivePlayerInfo) {
-				return self::$playerCache[$id] = self::xuid($info->getXuid());
+				$provider = self::xuid($info->getXuid());
+			} else {
+				$provider = self::name($id->getName());
 			}
-			return self::$playerCache[$id] = self::name($id->getName());
+			self::$playerCache->put($id, $provider);
+			return $provider;
 		}
-		return self::name($id);
-	}
+		$provider = self::$playerCache->get($id);
+		if ($provider !== null) {
+			return $provider;
+		}
+		$provider = self::name($id);
 
-	public static function player(PracticePlayer $player) : self {
-		if (!isset(self::$playerCache)) {
-			self::$playerCache = new WeakMap();
-		}
-		if (isset(self::$playerCache[$player])) {
-			return self::$playerCache[$player];
-		}
-		$info = $player->getPlayerInfo();
-		if ($info instanceof XboxLivePlayerInfo) {
-			return self::$playerCache[$player] = self::xuid($info->getXuid());
-		}
-		return self::$playerCache[$player] = self::name($player->getName());
-	}
-
-	public static function autoOrXuid(PracticePlayer|string $id) : self {
-		if ($id instanceof PracticePlayer) {
-			$info = $id->getPlayerInfo();
-			if ($info instanceof XboxLivePlayerInfo) {
-				return self::xuid($info->getXuid());
-			}
-			return self::name($id->getName());
-		}
-		return self::xuid($id);
+		self::$playerCache->put($id, $provider);
+		return $provider;
 	}
 
 	public static function name(string $name) : self {
