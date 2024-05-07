@@ -1,122 +1,76 @@
 <?php
+declare(strict_types=1);
 
 namespace blackjack200\economy\provider\next\impl;
 
 use blackjack200\economy\provider\next\impl\tools\BidirectionalIndexedDataVisitor;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
+use Closure;
+use InvalidArgumentException;
+use pocketmine\utils\Utils;
+use stdClass;
+use think\db\Raw;
 use think\DbManager;
 
 class AccountDataService {
-	private static function getPdoType($data) : ?string {
-		if (is_string($data)) {
-			return 'string';
-		}
-		if (is_float($data)) {
-			return 'float';
-		}
-		if (is_int($data)) {
-			return 'int';
-		}
-		if (is_bool($data)) {
-			return 'bool';
-		}
-		return null;
-	}
-
 	public static function getAll(DbManager $db, IdentifierProvider $id) : ?array {
 		return $id($db, static fn(string $xuid) => self::internalGetData($db, $xuid));
 	}
 
 	public static function setAll(DbManager $db, IdentifierProvider $id, $raw) : bool {
-		$d = json_encode($raw, JSON_THROW_ON_ERROR);
-		return $id($db, static function(string $xuid) use ($d, $db) : bool {
-			$data = [];
-			$data[SchemaConstants::COL_DATA] = json_decode($d, true, 512, JSON_THROW_ON_ERROR);
-			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->json([SchemaConstants::COL_DATA], true)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->update($data);
+		if (!is_array($raw) || !($raw instanceof stdClass)) {
+			throw new InvalidArgumentException("invalid argument raw: " . var_export($raw, true));
+		}
+		$encoded = json_encode($raw, JSON_THROW_ON_ERROR);
+		return $id($db, static function(string $xuid) use ($db, $encoded) : bool {
+			return self::setAllInternal($db, $xuid, $encoded);
 		}, false);
 	}
 
 	public static function set(DbManager $db, IdentifierProvider $id, string $key, $value) : bool {
-		$data = [];
-		$key = addslashes($key);
-		$data[SchemaConstants::COL_DATA . "->$key"] = $value;
-		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-			->json([SchemaConstants::COL_DATA], true)
-			->where(SchemaConstants::COL_XUID, $xuid)
-			->update($data)
-			, false);
+		$encoded = json_encode($value, JSON_THROW_ON_ERROR);
+		Utils::assumeNotFalse($encoded);
+		return $id($db, static function(string $xuid) use ($encoded, $key, $db) {
+			return self::setKeyInner($db, $xuid, $key, $encoded);
+		}, false);
 	}
 
-	public static function update(DbManager $db, IdentifierProvider $id, string $key, \Closure $operator) : bool {
-		$key = addslashes($key);
+	/**
+	 * @template T
+	 * @param Closure(T|null):(T|null) $operator
+	 */
+	public static function update(DbManager $db, IdentifierProvider $id, string $key, Closure $operator) : bool {
 		return $id($db, static function(string $xuid) use ($operator, $key, $db) : bool {
 			$old = self::internalGetData($db, $xuid) ?? [];
-
-			$data = [];
-			$data[SchemaConstants::COL_DATA . "->$key"] = $operator($old[$key] ?? null);
-
-			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->json([SchemaConstants::COL_DATA], true)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->update($data);
+			$encoded = json_encode($operator($old[$key] ?? null), JSON_THROW_ON_ERROR);
+			return self::setKeyInner($db, $xuid, $key, $encoded);
 		}, false);
 	}
 
 	public static function delete(DbManager $db, IdentifierProvider $id, string $key) : bool {
-		$key = addslashes($key);
 		return $id($db, static function(string $xuid) use ($key, $db) : bool {
-			$old = self::internalGetData($db, $xuid) ?? [];
-			unset($old[$key]);
-			$data = [];
-			$data[SchemaConstants::COL_DATA] = $old;
-			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->json([SchemaConstants::COL_DATA], true)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->update($data);
+			return self::deleteKeyInner($db, $xuid, $key);
 		}, false);
 	}
 
-	public static function updateAuto(DbManager $db, IdentifierProvider $id, string $key, \Closure $operator) : bool {
-		$key = addslashes($key);
-		return $id($db, static function(string $xuid) use ($operator, $key, $db) : bool {
-			$old = self::internalGetData($db, $xuid) ?? [];
-
-			$data = [];
-			$userNewData = $operator($old[$key] ?? null);
-			$data[SchemaConstants::COL_DATA . "->$key"] = $userNewData;
-
-			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->json([SchemaConstants::COL_DATA], true)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->update($data);
-		}, false);
-	}
-
-	public static function updateAll(DbManager $db, IdentifierProvider $id, \Closure $operator) : bool {
+	public static function updateAll(DbManager $db, IdentifierProvider $id, Closure $operator) : bool {
 		return $id($db, static function(string $xuid) use ($operator, $db) : bool {
 			$old = self::internalGetData($db, $xuid) ?? [];
 
-			$data = [];
-			$data[SchemaConstants::COL_DATA] = $operator($old);
-
-			return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->json([SchemaConstants::COL_DATA], true)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->update($data);
+			$newVal = $operator($old);
+			$encoded = json_encode($newVal, JSON_THROW_ON_ERROR);
+			return self::setAllInternal($db, $xuid, $encoded);
 		}, false);
 	}
 
 	public static function sort(DbManager $db, string $key, int $n, bool $asc) : BidirectionalIndexedDataVisitor {
-		$key = addslashes($key);
+		$path = AccountDataHelper::jsonKeyPath($key);
 		$mode = $asc ? 'ASC' : 'DESC';
 		//TODO avoid inject
 		$sorted = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
-			->orderRaw("cast(json_extract(data, concat('$.', '" . $key . "')) as signed) $mode")
+			->orderRaw("cast(json_extract(data, '$path') as signed) $mode")
 			->limit($n)
 			->select()->toArray();
 		return BidirectionalIndexedDataVisitor::create($key, $sorted);
@@ -129,5 +83,38 @@ class AccountDataService {
 			->where(SchemaConstants::COL_XUID, $xuid)
 			->find();
 		return $result[SchemaConstants::COL_DATA] ?? null;
+	}
+
+	private static function setKeyInner(DbManager $db, string $xuid, string $key, string $encoded) : bool {
+		$path = AccountDataHelper::jsonKeyPath($key);
+		$encoded = base64_encode($encoded);
+		$f = "json_set(data, '$path', cast(convert(from_base64('$encoded') using utf8mb4) as json))";
+		$ret = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+			->json([SchemaConstants::COL_DATA], true)
+			->where(SchemaConstants::COL_XUID, $xuid)
+			->limit(1)
+			->update([SchemaConstants::COL_DATA => new Raw($f)]);
+		return $ret === 1;
+	}
+
+	private static function deleteKeyInner(DbManager $db, string $xuid, string $key) : bool {
+		$path = AccountDataHelper::jsonKeyPath($key);
+		$f = "json_remove(data, '$path')";
+		$ret = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+			->json([SchemaConstants::COL_DATA], true)
+			->where(SchemaConstants::COL_XUID, $xuid)
+			->limit(1)
+			->update([SchemaConstants::COL_DATA => new Raw($f)]);
+		return $ret === 1;
+	}
+
+	private static function setAllInternal(DbManager $db, string $xuid, false|string $encoded) : bool {
+		$encoded = base64_encode($encoded);
+		return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+				->json([SchemaConstants::COL_DATA], true)
+				->where(SchemaConstants::COL_XUID, $xuid)
+				->update([
+					SchemaConstants::COL_DATA => new Raw("cast(convert(from_base64('$encoded') using utf8mb4) as json)"),
+				]) === 1;
 	}
 }

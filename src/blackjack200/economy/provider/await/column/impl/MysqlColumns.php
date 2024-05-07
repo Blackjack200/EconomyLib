@@ -12,7 +12,7 @@ class MysqlColumns {
 	) : MysqlColumn {
 		return new MysqlColumn(
 			$key,
-			(int) $default,
+			$default,
 			static fn($raw) => (bool) (((int) $raw) & 1)
 		);
 	}

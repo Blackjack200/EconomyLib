@@ -44,14 +44,15 @@ class SharedData implements SharedDataHolder {
 			}
 			return $validator(null);
 		}
-		return $validator(yield from $this->value->trySet(function($set) use ($key) {
+		yield from $this->value->trySet(function($set) use ($key) {
 			$data = yield from AccountDataProxy::getAll($this->id);
 			if (!isset($data[$key])) {
 				return null;
 			}
 			$set($data);
 			return $data[$key];
-		}, $r));
+		}, $r);
+		return $validator($r);
 	}
 
 	public function set(string $key, $value, bool $optimistic) {
