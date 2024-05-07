@@ -44,15 +44,16 @@ class SharedData implements SharedDataHolder {
 			}
 			return $validator(null);
 		}
-		yield from $this->value->trySet(function($set) use ($key) {
+		$val = null;
+		yield from $this->value->trySet(function($set) use ($key, &$val) {
 			$data = yield from AccountDataProxy::getAll($this->id);
 			if (!isset($data[$key])) {
 				return null;
 			}
 			$set($data);
-			return $data[$key];
-		}, $r);
-		return $validator($r);
+			$val = $data[$key];
+		});
+		return $validator($val);
 	}
 
 	public function set(string $key, $value, bool $optimistic) {
@@ -63,7 +64,7 @@ class SharedData implements SharedDataHolder {
 					$v[$key] = $value;
 					$set($v);
 				}
-			}, $result);
+			});
 		}
 		$success = yield from AccountDataProxy::set($this->id, $key, $value);
 		yield from $this->sync();
@@ -78,7 +79,7 @@ class SharedData implements SharedDataHolder {
 					unset($v[$key]);
 					$set($v);
 				}
-			}, $result);
+			});
 		}
 		$success = yield from AccountDataProxy::delete($this->id, $key);
 		yield from $this->sync();
@@ -92,7 +93,7 @@ class SharedData implements SharedDataHolder {
 				return;
 			}
 			$set($data);
-		}, $r);
+		});
 	}
 
 	public function readCache(string $key, \Closure $validator) {
@@ -111,7 +112,7 @@ class SharedData implements SharedDataHolder {
 					$v[$key] = $operator($v[$key]);
 					$set($v);
 				}
-			}, $result);
+			});
 		}
 		$success = yield from AccountDataProxy::update($this->id, $key, $operator);
 		yield from $this->sync();
