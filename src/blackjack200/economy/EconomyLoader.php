@@ -53,7 +53,7 @@ class EconomyLoader extends PluginBase {
 		string $config,
 		int    $n = 1
 	) : ExecutorPool {
-		return new ExecutorPool(new WorkerFactory(
+		return new ExecutorPool(Server::getInstance()->getTickSleeper(), new WorkerFactory(
 			ExecutorWorker::class, LoggerUtils::makeLogger($plugin), $autoload,
 			AsyncExecutionEnvironment::simple(
 				static function() use ($cacheDir, $config) {
