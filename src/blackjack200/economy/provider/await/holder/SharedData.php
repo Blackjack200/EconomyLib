@@ -5,13 +5,13 @@ namespace blackjack200\economy\provider\await\holder;
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use Closure;
-use libasync\await\lock\rw\LockedValue;
+use libasync\await\lock\rw\MutexRefCell;
 use prokits\player\PracticePlayer;
 use WeakMap;
 
 class SharedData implements SharedDataHolder {
-	/** @var LockedValue<array|null> */
-	private LockedValue $value;
+	/** @var MutexRefCell<array|null> */
+	private MutexRefCell $value;
 	/** @var WeakMap<IdentifierProvider,self> */
 	private static WeakMap $cache;
 
@@ -19,7 +19,7 @@ class SharedData implements SharedDataHolder {
 	public function __construct(
 		private readonly IdentifierProvider $id
 	) {
-		$this->value = new LockedValue(null);
+		$this->value = new MutexRefCell(null);
 	}
 
 	public static function from(IdentifierProvider $id) : self {
