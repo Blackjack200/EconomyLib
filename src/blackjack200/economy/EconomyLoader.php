@@ -41,9 +41,8 @@ class EconomyLoader extends PluginBase {
 		$this->saveResource('db_config.json');
 		$config = file_get_contents(Path::join($this->getDataFolder(), 'db_config.json'));
 		$this->cacheDir = Path::join(Server::getInstance()->getDataPath(), "cache");
-		require_once $autoload;
 		$this->executor = self::createThreadPoolExecutor($this, $autoload, $this->cacheDir, $config, 4);
-		$this->executor->start();
+		//$this->executor->start();
 	}
 
 	public static function createThreadPoolExecutor(
@@ -80,7 +79,7 @@ class EconomyLoader extends PluginBase {
 	}
 
 	protected function onDisable() : void {
-		$this->executor->shutdown();
+		//$this->executor->shutdown();
 		Filesystem::recursiveUnlink($this->cacheDir);
 	}
 }
