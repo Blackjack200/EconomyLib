@@ -53,17 +53,20 @@ class EconomyLoader extends PluginBase {
 					ThreadLocal::register([$db, 0]);
 					return $db;
 				}
+				var_dump($threadLocalDb[1]);
 				return $threadLocalDb[0];
 			},
 			static function() {
 				[$db, $usedCount] = ThreadLocal::fetch();
 				assert($db instanceof DbManager);
-				if (++$usedCount > 5) {
+				if (++$usedCount >= 40) {
+					var_dump($usedCount);
+					var_dump("CLOSE");
 					$db->close();
 					ThreadLocal::unregister();
 					return;
 				}
-				ThreadLocal::register([$db, $usedCount + 1]);
+				ThreadLocal::register([$db, $usedCount]);
 			}
 		);
 	}
