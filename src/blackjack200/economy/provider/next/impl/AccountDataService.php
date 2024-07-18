@@ -88,7 +88,7 @@ class AccountDataService {
 	private static function setKeyInner(DbManager $db, string $xuid, string $key, string $encoded) : bool {
 		$path = AccountDataHelper::jsonKeyPath($key);
 		$encoded = base64_encode($encoded);
-		$f = "json_set(data, '$path', cast(convert(from_base64('$encoded') using utf8mb4) as json))";
+		$f = "json_set(data, '$path', from_base64('$encoded'))";
 		$ret = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
 			->where(SchemaConstants::COL_XUID, $xuid)
