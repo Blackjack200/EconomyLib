@@ -6,7 +6,6 @@ use blackjack200\economy\EconomyLoader;
 use blackjack200\economy\provider\next\impl\RankService;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use Generator;
-use libasync\await\Await;
 use think\DbManager;
 
 /**
@@ -20,6 +19,6 @@ use think\DbManager;
  */
 class RankServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return yield from Await::threadify(static fn(DbManager $db) => RankService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
+		return yield from EconomyLoader::db(static fn(DbManager $db) => RankService::$name($db, ...$arguments));
 	}
 }

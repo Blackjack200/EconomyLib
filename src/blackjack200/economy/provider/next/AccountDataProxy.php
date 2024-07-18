@@ -8,7 +8,6 @@ use blackjack200\economy\provider\next\impl\tools\BidirectionalIndexedDataVisito
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use Closure;
 use Generator;
-use libasync\await\Await;
 use think\DbManager;
 
 /**
@@ -22,7 +21,7 @@ use think\DbManager;
  */
 class AccountDataProxy {
 	public static function __callStatic(string $name, array $arguments) {
-		return yield from Await::threadify(static fn(DbManager $db) : mixed => AccountDataService::$name($db, ...$arguments), EconomyLoader::getInstance()->getExecutor());
+		return yield from EconomyLoader::db(static fn(DbManager $db) : mixed => AccountDataService::$name($db, ...$arguments));
 	}
 
 	public static function formatKey(string $key) : string {
