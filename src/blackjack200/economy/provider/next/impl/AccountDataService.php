@@ -114,7 +114,7 @@ class AccountDataService {
 				->json([SchemaConstants::COL_DATA], true)
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->update([
-					SchemaConstants::COL_DATA => new Raw("cast(convert(from_base64('$encoded') using utf8mb4) as json)"),
+					SchemaConstants::COL_DATA => new Raw("from_base64('$encoded')"),
 				]) === 1;
 	}
 }
