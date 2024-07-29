@@ -60,12 +60,13 @@ final class IdentifierProvider extends ThreadSafe {
 					->cache(5)
 					->where(SchemaConstants::COL_PLAYER_NAME, $name)
 					->order(SchemaConstants::COL_LAST_MODIFIED_TIME, 'desc')
+					->limit(1)
 					->column(SchemaConstants::COL_XUID);
 				/*if (count($eq) > 1) {
 					throw new LogicException("Name: $name should not be associated with " . var_export($eq, true));
 				}*/
 				if (count($eq) > 0) {
-					$xuid = array_pop($eq);
+					$xuid = array_shift($eq);
 					return $other($xuid);
 				}
 				return $default;
