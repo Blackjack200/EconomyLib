@@ -48,6 +48,24 @@ class AccountDataService {
 		}, false);
 	}
 
+	public static function numericDelta(DbManager $db, IdentifierProvider $id, string $key, int $delta, bool $signed = true) : bool {
+		if ($delta === 0) {
+			return false;
+		}
+		return $id($db, static function(string $xuid) use ($signed, $delta, $key, $db) : bool {
+			$path = "'" . AccountDataHelper::jsonKeyPath($key) . "'";
+			$delta = ($delta > 0) ? "+ $delta" : "- $delta";
+			$sign = $signed ? 'signed' : 'unsigned';
+			$f = "json_set(data, $path, cast((coalesce(json_extract(data, $path), 0)  $delta) as $sign))";
+			$ret = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+				->json([SchemaConstants::COL_DATA], true)
+				->where(SchemaConstants::COL_XUID, $xuid)
+				->limit(1)
+				->update([SchemaConstants::COL_DATA => new Raw($f)]);
+			return $ret === 1;
+		}, false);
+	}
+
 	public static function delete(DbManager $db, IdentifierProvider $id, string $key) : bool {
 		return $id($db, static function(string $xuid) use ($key, $db) : bool {
 			return self::deleteKeyInner($db, $xuid, $key);
@@ -70,7 +88,7 @@ class AccountDataService {
 		//TODO avoid inject
 		$sorted = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->json([SchemaConstants::COL_DATA], true)
-			->orderRaw("cast(json_extract(data, '$path') as signed) $mode")
+			->orderRaw("cast(coalesce(json_extract(data, '$path'), 0) as signed) $mode")
 			->limit($n)
 			->select()->toArray();
 		return BidirectionalIndexedDataVisitor::create($key, $sorted);
@@ -108,7 +126,7 @@ class AccountDataService {
 		return $ret === 1;
 	}
 
-	private static function setAllInternal(DbManager $db, string $xuid, false|string $encoded) : bool {
+	private static function setAllInternal(DbManager $db, string $xuid, string $encoded) : bool {
 		$encoded = base64_encode($encoded);
 		return $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 				->json([SchemaConstants::COL_DATA], true)

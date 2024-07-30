@@ -10,8 +10,14 @@ use Generator;
 use prokits\player\PracticePlayer;
 
 class MysqlIntegerColumn extends MysqlColumn implements NumericColumn {
+	public function __construct(string $key, mixed $default, \Closure $hydrator, private bool $signed = false) {
+		parent::__construct($key, $default, $hydrator);
+	}
+
+	public function isSigned() : bool { return $this->signed; }
+
 	public function add(PracticePlayer|string $player, int $delta) : Generator|bool {
-		return yield from SharedData::autoOrName($player)->update($this->key, static fn($old) => ((int) $old) + $delta, false);
+		return yield from SharedData::autoOrName($player)->numericUpdate($this->key, $delta, $this->signed, false);
 	}
 
 	public function dsort(int $limit) : Generator|BidirectionalIndexedDataVisitor {

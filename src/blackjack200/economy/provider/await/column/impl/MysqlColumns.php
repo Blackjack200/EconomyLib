@@ -22,12 +22,14 @@ class MysqlColumns {
 	 */
 	public static function int(
 		string $key,
-		int    $default = 0
+		int  $default = 0,
+		bool $signed = false
 	) : MysqlIntegerColumn {
 		return new MysqlIntegerColumn(
 			$key,
 			$default,
-			static fn($raw) => ((int) $raw)
+			static fn($raw) => ((int) $raw),
+			$signed
 		);
 	}
 

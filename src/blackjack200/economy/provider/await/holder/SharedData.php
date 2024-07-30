@@ -115,7 +115,38 @@ class SharedData implements SharedDataHolder {
 			});
 		}
 		$success = yield from AccountDataProxy::update($this->id, $key, $operator);
-		yield from $this->sync();
+		//yield from $this->sync();
+		yield from $this->value->trySet(function($set, $get) use ($operator, $key) {
+			$v = $get();
+			if ($v !== null && isset($v[$key])) {
+				$v[$key] = $operator($v[$key]);
+				$set($v);
+			}
+		});
+		return $success;
+	}
+
+
+	public function numericUpdate(string $key, int $delta, bool $signed, bool $optimistic) {
+		if ($optimistic) {
+			yield from $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
+				$v = $get();
+				if ($v !== null && isset($v[$key])) {
+					$v[$key] = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);
+					$set($v);
+				}
+			});
+		}
+		$success = yield from AccountDataProxy::numericDelta($this->id, $key, $delta, $signed);
+
+		yield from $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
+			$v = $get();
+			if ($v !== null && isset($v[$key])) {
+				$v[$key] = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);
+				$set($v);
+			}
+		});
+
 		return $success;
 	}
 }

@@ -16,6 +16,7 @@ use think\DbManager;
  * @method static Generator|bool set(IdentifierProvider $id, string $key, $value)
  * @method static Generator|bool update(IdentifierProvider $id, string $key, Closure $operator)
  * @method static Generator|bool updateAll(IdentifierProvider $id, Closure $operator)
+ * @method static Generator|bool numericDelta(IdentifierProvider $id, string $key, int $delta, bool $signed = true)
  * @method static Generator|bool delete(IdentifierProvider $id, string $key)
  * @method static Generator|BidirectionalIndexedDataVisitor sort(string $key, int $n, bool $asc)
  */
