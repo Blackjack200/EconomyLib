@@ -62,7 +62,7 @@ class AccountDataService {
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->limit(1);
 			if (!$signed) {
-				$ret->whereRaw("cast((coalesce(json_extract(data, $path), 0)  $delta) as signed)) >= 0");
+				$ret->whereRaw("cast((coalesce(json_extract(data, $path), 0)  $delta) as signed) >= 0");
 			}
 			$ret = $ret->update([SchemaConstants::COL_DATA => new Raw($f)]);
 			return $ret === 1;
