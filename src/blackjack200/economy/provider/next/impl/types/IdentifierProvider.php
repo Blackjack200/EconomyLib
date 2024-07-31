@@ -27,7 +27,7 @@ final class IdentifierProvider extends ThreadSafe {
 
 	public static function autoOrName(PracticePlayer|string $id) : self {
 		if (!isset(self::$playerCache)) {
-			self::$playerCache = new WeakOrStrongCache(50, 50);
+			self::$playerCache = new WeakOrStrongCache(PHP_INT_MAX, 100);
 		}
 		if ($id instanceof PracticePlayer) {
 			$cc = self::$playerCache->get($id);
