@@ -60,8 +60,11 @@ class AccountDataService {
 			$ret = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 				->json([SchemaConstants::COL_DATA], true)
 				->where(SchemaConstants::COL_XUID, $xuid)
-				->limit(1)
-				->update([SchemaConstants::COL_DATA => new Raw($f)]);
+				->limit(1);
+			if (!$signed) {
+				$ret->whereRaw("cast((coalesce(json_extract(data, $path), 0)  $delta) as signed)) >= 0");
+			}
+			$ret = $ret->update([SchemaConstants::COL_DATA => new Raw($f)]);
 			return $ret === 1;
 		}, false);
 	}
