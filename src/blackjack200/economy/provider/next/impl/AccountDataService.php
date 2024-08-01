@@ -50,7 +50,7 @@ class AccountDataService {
 
 	public static function numericDelta(DbManager $db, IdentifierProvider $id, string $key, int $delta, bool $signed = true) : bool {
 		if ($delta === 0) {
-			return false;
+			return true;
 		}
 		return $id($db, static function(string $xuid) use ($signed, $delta, $key, $db) : bool {
 			$path = "'" . AccountDataHelper::jsonKeyPath($key) . "'";
