@@ -22,8 +22,8 @@ class MysqlColumns {
 	 */
 	public static function int(
 		string $key,
-		int  $default = 0,
-		bool $signed = false
+		int    $default = 0,
+		bool   $signed = false
 	) : MysqlIntegerColumn {
 		return new MysqlIntegerColumn(
 			$key,
@@ -44,6 +44,20 @@ class MysqlColumns {
 			$key,
 			$default,
 			static fn($raw) => ((string) $raw)
+		);
+	}
+
+	/**
+	 * @return MysqlColumn<array>
+	 */
+	public static function array(
+		string $key,
+		array  $default = []
+	) : MysqlColumn {
+		return new MysqlColumn(
+			$key,
+			$default,
+			static fn($raw) => ((array) $raw)
 		);
 	}
 }
