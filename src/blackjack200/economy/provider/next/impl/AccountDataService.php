@@ -54,7 +54,7 @@ class AccountDataService {
 		}
 		return $id($db, static function(string $xuid) use ($signed, $delta, $key, $db) : bool {
 			$path = "'" . AccountDataHelper::jsonKeyPath($key) . "'";
-			$delta = ($delta > 0) ? "+ $delta" : "- $delta";
+			$delta = ($delta > 0) ? "+ $delta" : "$delta";
 			$sign = $signed ? 'signed' : 'unsigned';
 			$f = "json_set(data, $path, cast((coalesce(json_extract(data, $path), 0)  $delta) as $sign))";
 			$ret = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
