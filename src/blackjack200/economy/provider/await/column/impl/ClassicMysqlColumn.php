@@ -24,7 +24,7 @@ class ClassicMysqlColumn implements Column {
 		/** @var \Closure(mixed|null):T $hydrator */
 		protected readonly \Closure $hydrator,
 	) {
-		$this->cache = new WeakOrStrongCache(50, 3000);
+		$this->cache = new WeakOrStrongCache(PHP_INT_MAX, 3000);
 	}
 
 	public function getKey() : string {
