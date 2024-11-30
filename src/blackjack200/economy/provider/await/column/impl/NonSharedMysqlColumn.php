@@ -13,7 +13,7 @@ use prokits\player\PracticePlayer;
 /**
  * @template T of scalar
  */
-class ClassicMysqlColumn implements Column {
+class NonSharedMysqlColumn implements Column {
 	/** @var WeakOrStrongCache<PracticePlayer,string,T|DataLock> */
 	protected WeakOrStrongCache $cache;
 
