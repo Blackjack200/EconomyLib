@@ -28,7 +28,6 @@ readonly final class IndexedVisitor {
 		}
 	}
 
-
 	/**
 	 * @return Generator<void,string,scalar,void>
 	 */
