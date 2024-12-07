@@ -57,7 +57,7 @@ class SharedData implements SharedDataHolder {
 	}
 
 	public function set(string $key, $value, bool $optimistic) {
-		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($value, $key) {
+		$updateLocal = fn() => $this->value->trySet(function($set, $get) use ($value, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
 				$v[$key] = $value;
@@ -77,7 +77,7 @@ class SharedData implements SharedDataHolder {
 	}
 
 	public function unset(string $key, bool $optimistic) {
-		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($key) {
+		$updateLocal = fn() => $this->value->trySet(function($set, $get) use ($key) {
 			$v = $get();
 			if ($v !== null) {
 				unset($v[$key]);
@@ -112,7 +112,7 @@ class SharedData implements SharedDataHolder {
 	}
 
 	public function update(string $key, Closure $operator, bool $optimistic) {
-		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($operator, $key) {
+		$updateLocal = fn() => $this->value->trySet(function($set, $get) use ($operator, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
 				$v[$key] = $operator($v[$key]);
@@ -133,7 +133,7 @@ class SharedData implements SharedDataHolder {
 
 
 	public function numericUpdate(string $key, int $delta, bool $signed, bool $optimistic) {
-		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
+		$updateLocal = fn() => $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
 				$v[$key] = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);

@@ -95,7 +95,7 @@ class NonSharedMysqlColumn extends MysqlColumn {
 		if ($cached instanceof DataLock) {
 			return $this->default;
 		}
-		if ($cached === null) {
+		if (!$this->cache->has($player)) {
 			async($this->syncCache($player, true))->logError();
 		}
 		return $cached ?? $this->default;
