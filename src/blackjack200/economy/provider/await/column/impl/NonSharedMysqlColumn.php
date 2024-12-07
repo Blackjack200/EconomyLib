@@ -2,28 +2,23 @@
 
 namespace blackjack200\economy\provider\await\column\impl;
 
-use blackjack200\economy\provider\await\column\Column;
 use blackjack200\economy\provider\await\column\DataLock;
 use blackjack200\economy\provider\await\column\WeakOrStrongCache;
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use libasync\await\Await;
 use prokits\player\PracticePlayer;
+use function libasync\async;
 
 /**
  * @template T of scalar
  */
-class NonSharedMysqlColumn implements Column {
+class NonSharedMysqlColumn extends MysqlColumn {
 	/** @var WeakOrStrongCache<PracticePlayer,string,T|DataLock> */
 	protected WeakOrStrongCache $cache;
 
-	public function __construct(
-		protected readonly string   $key,
-		/** @var T $default */
-		protected readonly mixed    $default,
-		/** @var \Closure(mixed|null):T $hydrator */
-		protected readonly \Closure $hydrator,
-	) {
+	public function __construct(string $key, mixed $default, \Closure $hydrator) {
+		parent::__construct($key, $default, $hydrator);
 		$this->cache = new WeakOrStrongCache(PHP_INT_MAX, 3000);
 	}
 
@@ -60,8 +55,6 @@ class NonSharedMysqlColumn implements Column {
 	}
 
 	public function set(PracticePlayer|string $player, $data) : \Generator|bool {
-		$data = ($this->hydrator)($data);
-
 		$this->cache->put($player, $data);
 		$success = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($player), $this->key, $data);
 
@@ -94,17 +87,7 @@ class NonSharedMysqlColumn implements Column {
 		$this->waitCacheReady($player);
 		$lock = new DataLock();
 		$this->cache->put($player, $lock);
-		$all = yield from AccountDataProxy::getAll(IdentifierProvider::autoOrName($player));
-		/** @var T $fetchedRawData */
-		$fetchedRawData = $all[$this->key] ?? $this->default;
-		$data = ($this->hydrator)($fetchedRawData);
-		/*
-				$cached = $this->cache->get($player);
-				//a new synchronization is running, so drop the old one
-				if ($cached instanceof DataLock && $cached !== $lock) {
-					return yield from $this->waitCacheReady($player);
-				}
-		*/
+		$data = yield from parent::get($player);
 		$this->cache->put($player, $data);
 		return $data;
 	}
@@ -117,7 +100,7 @@ class NonSharedMysqlColumn implements Column {
 			return $this->default;
 		}
 		if ($cached === null) {
-			Await::do($this->syncCache($player))->logError();
+			async($this->syncCache($player))->logError();
 		}
 		return $cached ?? $this->default;
 	}
