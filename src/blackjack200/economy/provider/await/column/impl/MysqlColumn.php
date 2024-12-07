@@ -66,6 +66,7 @@ class MysqlColumn implements Column {
 	public function getCachedKeepLatest(PracticePlayer|string $player) {
 		$data = SharedData::autoOrName($player);
 		Await::do(Await::f2c(static fn() => $data->sync()))->logError();
+		yield;
 		return $data->readCache($this->key, $this->hydrator);
 	}
 
