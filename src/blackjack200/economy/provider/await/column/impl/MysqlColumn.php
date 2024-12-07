@@ -41,14 +41,22 @@ class MysqlColumn implements Column {
 		return yield from $data->unset($this->key, false);
 	}
 
-	public function get(PracticePlayer|string $player) {
+	public function getLatest(PracticePlayer|string $player) {
 		$data = SharedData::autoOrName($player);
 		return yield from $data->get($this->key, false, $this->hydrator);
 	}
 
+	/**
+	 * @deprecated
+	 * @see MysqlColumn::getLatest())
+	 */
+	public function get(PracticePlayer|string $player) {
+		return yield from $this->getLatest($player);
+	}
+
 	public function getCached(PracticePlayer|string $player) {
 		$data = SharedData::autoOrName($player);
-		return yield from $data->get($this->key, false, $this->hydrator);
+		return yield from $data->get($this->key, true, $this->hydrator);
 	}
 
 	public function readCached(PracticePlayer|string $player) {
@@ -58,7 +66,7 @@ class MysqlColumn implements Column {
 	public function getCachedKeepLatest(PracticePlayer|string $player) {
 		$data = SharedData::autoOrName($player);
 		Await::do(Await::f2c(static fn() => $data->sync()))->logError();
-		return $data->get($this->key, true, $this->hydrator);
+		return $data->readCache($this->key, $this->hydrator);
 	}
 
 	public function refresh(PracticePlayer|string $player) : Generator {

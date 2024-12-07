@@ -11,7 +11,7 @@ interface SharedDataHolder {
 	 * @param Closure(scalar|null):T $validator
 	 * @return Generator<void,void,void,T|null>|T|null
 	 */
-	public function get(string $key, bool $useCache, \Closure $validator);
+	public function get(string $key, bool $preferCache, \Closure $validator);
 
 	/**
 	 * @template T

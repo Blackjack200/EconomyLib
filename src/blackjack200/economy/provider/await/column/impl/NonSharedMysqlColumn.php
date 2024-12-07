@@ -4,8 +4,10 @@ namespace blackjack200\economy\provider\await\column\impl;
 
 use blackjack200\economy\provider\await\column\DataLock;
 use blackjack200\economy\provider\await\column\WeakOrStrongCache;
+use blackjack200\economy\provider\await\holder\SharedData;
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
+use Generator;
 use libasync\await\Await;
 use prokits\player\PracticePlayer;
 use function libasync\async;
@@ -54,16 +56,10 @@ class NonSharedMysqlColumn extends MysqlColumn {
 		yield from $this->set($player, $this->default);
 	}
 
-	public function set(PracticePlayer|string $player, $data) : \Generator|bool {
-		$this->cache->put($player, $data);
-		$success = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($player), $this->key, $data);
-
-		if ($success) {
-			Await::do($this->syncCache($player))->logError();
-		} else {
-			yield from $this->syncCache($player);
-		}
-		return $success;
+	public function set(PracticePlayer|string $player, $value) : Generator|bool {
+		$this->cache->put($player, $value);
+		$data = SharedData::autoOrName($player);
+		return yield from $data->set($this->key, $value, true);
 	}
 
 	public function delete(PracticePlayer|string $player) : \Generator|bool {
@@ -83,11 +79,11 @@ class NonSharedMysqlColumn extends MysqlColumn {
 		return $cached;
 	}
 
-	protected function syncCache(PracticePlayer|string $player) {
+	protected function syncCache(PracticePlayer|string $player, bool $preferCache = false) {
 		$this->waitCacheReady($player);
 		$lock = new DataLock();
 		$this->cache->put($player, $lock);
-		$data = yield from parent::get($player);
+		$data = yield from ($preferCache ? parent::getCached($player) : $this->getLatest($player));
 		$this->cache->put($player, $data);
 		return $data;
 	}
@@ -100,7 +96,7 @@ class NonSharedMysqlColumn extends MysqlColumn {
 			return $this->default;
 		}
 		if ($cached === null) {
-			async($this->syncCache($player))->logError();
+			async($this->syncCache($player, true))->logError();
 		}
 		return $cached ?? $this->default;
 	}

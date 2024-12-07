@@ -36,13 +36,13 @@ class SharedData implements SharedDataHolder {
 		return self::from(IdentifierProvider::autoOrName($id));
 	}
 
-	public function get(string $key, bool $useCache, \Closure $validator) {
-		if ($useCache) {
+	public function get(string $key, bool $preferCache, \Closure $validator) {
+		if ($preferCache) {
 			$last = $this->value->getLastWrite();
+			yield;
 			if ($last !== null) {
 				return $validator($last[$key] ?? null);
 			}
-			return $validator(null);
 		}
 		$val = null;
 		yield from $this->value->trySet(function($set) use ($key, &$val) {
@@ -57,42 +57,49 @@ class SharedData implements SharedDataHolder {
 	}
 
 	public function set(string $key, $value, bool $optimistic) {
+		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($value, $key) {
+			$v = $get();
+			if ($v !== null && isset($v[$key])) {
+				$v[$key] = $value;
+				$set($v);
+			}
+		});
 		if ($optimistic) {
-			yield from $this->value->trySet(function($set, $get) use ($value, $key) {
-				$v = $get();
-				if ($v !== null && isset($v[$key])) {
-					$v[$key] = $value;
-					$set($v);
-				}
-			});
+			yield from $updateLocal();
 		}
 		$success = yield from AccountDataProxy::set($this->id, $key, $value);
-		yield from $this->sync();
+		if ($success) {
+			yield from $updateLocal();
+		} else {
+			yield from $this->sync();
+		}
 		return $success;
 	}
 
 	public function unset(string $key, bool $optimistic) {
+		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($key) {
+			$v = $get();
+			if ($v !== null) {
+				unset($v[$key]);
+				$set($v);
+			}
+		});
 		if ($optimistic) {
-			yield from $this->value->trySet(function($set, $get) use ($key) {
-				$v = $get();
-				if ($v !== null) {
-					unset($v[$key]);
-					$set($v);
-				}
-			});
+			yield from $updateLocal();
 		}
 		$success = yield from AccountDataProxy::delete($this->id, $key);
-		yield from $this->sync();
+		if ($success) {
+			yield from $updateLocal();
+		} else {
+			yield from $this->sync();
+		}
 		return $success;
 	}
 
 	public function sync() {
 		yield from $this->value->trySet(function($set) {
 			$data = yield from AccountDataProxy::getAll($this->id);
-			if ($data === null) {
-				return;
-			}
-			$set($data);
+			$set($data ?? []);
 		});
 	}
 
@@ -105,47 +112,42 @@ class SharedData implements SharedDataHolder {
 	}
 
 	public function update(string $key, Closure $operator, bool $optimistic) {
-		if ($optimistic) {
-			yield from $this->value->trySet(function($set, $get) use ($operator, $key) {
-				$v = $get();
-				if ($v !== null && isset($v[$key])) {
-					$v[$key] = $operator($v[$key]);
-					$set($v);
-				}
-			});
-		}
-		$success = yield from AccountDataProxy::update($this->id, $key, $operator);
-		//yield from $this->sync();
-		yield from $this->value->trySet(function($set, $get) use ($operator, $key) {
+		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($operator, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
 				$v[$key] = $operator($v[$key]);
 				$set($v);
 			}
 		});
+		if ($optimistic) {
+			yield from $updateLocal();
+		}
+		$success = yield from AccountDataProxy::update($this->id, $key, $operator);
+		if ($success) {
+			yield from $updateLocal();
+		} else {
+			yield from $this->sync();
+		}
 		return $success;
 	}
 
 
 	public function numericUpdate(string $key, int $delta, bool $signed, bool $optimistic) {
-		if ($optimistic) {
-			yield from $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
-				$v = $get();
-				if ($v !== null && isset($v[$key])) {
-					$v[$key] = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);
-					$set($v);
-				}
-			});
-		}
-		$success = yield from AccountDataProxy::numericDelta($this->id, $key, $delta, $signed);
-
-		yield from $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
+		$updateLocal = static fn() => $this->value->trySet(function($set, $get) use ($delta, $signed, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
 				$v[$key] = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);
 				$set($v);
 			}
 		});
+
+		if ($optimistic) {
+			yield from $updateLocal();
+		}
+
+		$success = yield from AccountDataProxy::numericDelta($this->id, $key, $delta, $signed);
+
+		yield from $updateLocal();
 
 		return $success;
 	}

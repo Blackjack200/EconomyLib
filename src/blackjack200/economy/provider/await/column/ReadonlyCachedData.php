@@ -12,7 +12,7 @@ interface ReadonlyCachedData {
 	/**
 	 * @return T|\Generator
 	 */
-	public function get(PracticePlayer|string $player);
+	public function getLatest(PracticePlayer|string $player);
 
 	/**
 	 * @return T|\Generator
