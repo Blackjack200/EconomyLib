@@ -8,7 +8,7 @@
     }
   ],
   "require": {
-    "topthink/think-orm": "^3.0.9",
-    "symfony/cache": "^6.3"
+    "topthink/think-orm": "^3.0.33",
+    "symfony/cache": "^6.4.16"
   }
 }
