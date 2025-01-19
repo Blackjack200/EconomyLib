@@ -4,7 +4,7 @@ namespace blackjack200\economy\provider\await\column\impl;
 
 use blackjack200\economy\provider\await\column\DataLock;
 use blackjack200\economy\provider\await\column\WeakOrStrongCache;
-use blackjack200\economy\provider\await\holder\SharedData;
+use blackjack200\economy\provider\await\holder\SharedPlayerDataHolder;
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use Generator;
@@ -58,7 +58,7 @@ class NonSharedMysqlColumn extends MysqlColumn {
 
 	public function set(PracticePlayer|string $player, $value) : Generator|bool {
 		$this->cache->put($player, $value);
-		$data = SharedData::autoOrName($player);
+		$data = SharedPlayerDataHolder::autoOrName($player);
 		return yield from $data->set($this->key, $value, true);
 	}
 

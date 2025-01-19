@@ -5,11 +5,12 @@ namespace blackjack200\economy\provider\await\holder;
 use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use Closure;
+use libasync\await\Await;
 use libasync\await\lock\rw\MutexRefCell;
 use prokits\player\PracticePlayer;
 use WeakMap;
 
-class SharedData implements SharedDataHolder {
+class SharedPlayerDataHolder implements SharedDataHolder {
 	/** @var MutexRefCell<array|null> */
 	private MutexRefCell $value;
 	/** @var WeakMap<IdentifierProvider,self> */
@@ -39,7 +40,7 @@ class SharedData implements SharedDataHolder {
 	public function get(string $key, bool $preferCache, \Closure $validator) {
 		if ($preferCache) {
 			$last = $this->value->getLastWrite();
-			yield;
+			yield Await::suspend;
 			if ($last !== null) {
 				return $validator($last[$key] ?? null);
 			}
