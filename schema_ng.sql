@@ -24,26 +24,17 @@ create table rank_registry
 
 create table rank_player_data
 (
+    uid bigint unsigned,
     xuid     varchar(128)    not null,
     basename varchar(128)    not null,
     deadline bigint unsigned not null,
+    foreign key (uid) references account_metadata (uid)
+        on delete cascade,
     foreign key (xuid) references account_metadata (xuid)
         on delete cascade,
     foreign key (basename) references rank_registry (basename)
         on delete cascade,
-    primary key (xuid, basename)
-) default charset = utf8;
-
-create table ban_info
-(
-    xuid     varchar(128)    not null,
-    ban_time bigint unsigned not null,
-    ban_end  bigint unsigned not null,
-    source   varchar(128)    not null default 'unknown',
-    reason   varchar(256)    not null default 'unknown reason',
-    foreign key (xuid) references account_metadata (xuid)
-        on delete cascade,
-    primary key (xuid)
+    primary key (uid, basename)
 ) default charset = utf8;
 
 create table statistics_data

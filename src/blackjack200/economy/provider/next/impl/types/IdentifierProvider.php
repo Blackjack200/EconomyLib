@@ -22,24 +22,25 @@ final class IdentifierProvider extends ThreadSafe {
 
 	public static function xuid(string $xuid) : self {
 		return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($xuid) {
-			return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($xuid) {
-				$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-					->cache(true)
-					->where(SchemaConstants::COL_XUID, $xuid)
-					->limit(1)
-					->column(SchemaConstants::COL_UID);
-				if (count($eq) > 0) {
-					return $other($eq[array_key_first($eq)]);
-				}
-				\GlobalLogger::get()->debug("Couldn't find account for xuid $xuid.");
-				return $default;
-			});
+			$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+				->cache(true)
+				->where(SchemaConstants::COL_XUID, $xuid)
+				->limit(1)
+				->column(SchemaConstants::COL_UID);
+			if (count($eq) > 0) {
+				return $other($eq[array_key_first($eq)]);
+			}
+			\GlobalLogger::get()->debug("Couldn't find account for xuid $xuid.");
+			return $default;
 		});
 	}
 
-	public static function autoOrName(PracticePlayer|Identity $id) : self {
+	public static function autoOrName(PracticePlayer|Identity|string $id) : self {
 		if (!isset(self::$playerCache)) {
 			self::$playerCache = new LRUCache(128);
+		}
+		if (is_string($id)) {
+			$id = Identity::reuse($id, null, false);
 		}
 		$id = $id->asIdentity();
 		$hash = $id->hash();
@@ -68,19 +69,33 @@ final class IdentifierProvider extends ThreadSafe {
 			return $db->transaction(static function() use ($default, $guessOnline, $name, $db, $other) {
 				$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 					->cache(10);
-				if (!$guessOnline) {
-					$eq = $eq->whereNull(SchemaConstants::COL_XUID);
+				if ($guessOnline) {
+					$eq = $eq->whereNotNull(SchemaConstants::COL_XUID);
 				}
-				$eq = $eq
+
+				$eq = $eq->where(SchemaConstants::COL_PLAYER_NAME, $name)
+					->order(SchemaConstants::COL_LAST_MODIFIED_TIME, 'desc')
+					->limit(1)
+					->column(SchemaConstants::COL_UID);
+
+				if (count($eq) > 0) {
+					return $other($eq[array_key_first($eq)]);
+				}
+
+				\GlobalLogger::get()->debug("Couldn't find account for online player '$name'.");
+
+				$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+					->cache(10)
+					->whereNull(SchemaConstants::COL_XUID)
 					->where(SchemaConstants::COL_PLAYER_NAME, $name)
 					->order(SchemaConstants::COL_LAST_MODIFIED_TIME, 'desc')
 					->limit(1)
 					->column(SchemaConstants::COL_UID);
+
 				if (count($eq) > 0) {
 					return $other($eq[array_key_first($eq)]);
 				}
-				$p = $guessOnline ? 'online' : 'offline';
-				\GlobalLogger::get()->debug("Couldn't find account for $p player '$name'.");
+				\GlobalLogger::get()->debug("Couldn't find account for offline player '$name'.");
 				return $default;
 			}) ?? $default;
 		});

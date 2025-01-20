@@ -56,7 +56,7 @@ class DataHolder implements SharedDataHolder {
 	public function get(string $key, bool $preferCache) {
 		if ($preferCache && array_key_exists($key, $this->mappedData->getLastWrite() ?? [])) {
 			yield Await::suspend;
-			return $this->mappedData[$key];
+			return $this->mappedData->getLastWrite()[$key];
 		}
 		yield from $this->sync();
 		return yield from $this->mappedData->get(static fn($value) => ($value[$key] ?? null));
@@ -64,7 +64,7 @@ class DataHolder implements SharedDataHolder {
 
 	public function readCached(string $key) {
 		if (array_key_exists($key, $this->mappedData->getLastWrite() ?? [])) {
-			return $this->mappedData[$key];
+			return $this->mappedData->getLastWrite()[$key];
 		}
 		if (isset(self::$registered[$key])) {
 			return self::$registered[$key]->defaultValue;

@@ -5,6 +5,7 @@ namespace blackjack200\economy\provider\next\impl;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
 use LogicException;
+use think\db\Raw;
 use think\DbManager;
 
 class RankService {
@@ -58,7 +59,8 @@ class RankService {
 	}
 
 	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, int $deadline) : bool {
-		return $id($db, static function(string $xuid) use ($deadline, $rankBasename, $db) : bool {
+		return $id($db, static function(int $uid) use ($deadline, $rankBasename, $db) : bool {
+			$xuid = new Raw(sprintf("(select %s from %s where uid=$uid limit 1)", SchemaConstants::COL_XUID, SchemaConstants::TABLE_ACCOUNT_METADATA));
 			$result = $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
@@ -92,8 +94,8 @@ class RankService {
 	}
 
 	public static function removeRankFromPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename) : bool {
-		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
-			->where(SchemaConstants::COL_XUID, $xuid)
+		return $id($db, static fn(int $uid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+			->where(SchemaConstants::COL_XUID, new Raw(sprintf("(select %s from %s where uid=$uid limit 1)", SchemaConstants::COL_XUID, SchemaConstants::TABLE_ACCOUNT_METADATA)))
 			->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
 			->delete()
 			, false);
@@ -103,8 +105,8 @@ class RankService {
 	 * @return array<string, int>
 	 */
 	public static function getRanksFromPlayer(DbManager $db, IdentifierProvider $id) : array {
-		$results = $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
-			->where(SchemaConstants::COL_XUID, $xuid)
+		$results = $id($db, static fn(int $uid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+			->where(SchemaConstants::COL_XUID, new Raw(sprintf("(select %s from %s where uid=$uid limit 1)", SchemaConstants::COL_XUID, SchemaConstants::TABLE_ACCOUNT_METADATA)))
 			->column([SchemaConstants::COL_RANK_BASENAME, SchemaConstants::COL_RANK_DEADLINE])
 			, []);
 		$merged = [];
