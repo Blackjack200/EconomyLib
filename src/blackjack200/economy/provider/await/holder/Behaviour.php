@@ -15,6 +15,10 @@ class Behaviour {
 	) {
 	}
 
+	public static function passthrough() : self {
+		return new self(static fn($v) => $v, static fn($v) => $v);
+	}
+
 	public static function string() : self {
 		return new self(static fn($v) => (string) $v, static fn($v) => (string) $v);
 	}

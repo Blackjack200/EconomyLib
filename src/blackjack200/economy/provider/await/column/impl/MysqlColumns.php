@@ -2,6 +2,8 @@
 
 namespace blackjack200\economy\provider\await\column\impl;
 
+use blackjack200\economy\provider\await\holder\Behaviour;
+
 class MysqlColumns {
 	/**
 	 * @return MysqlColumn<bool>
@@ -13,7 +15,10 @@ class MysqlColumns {
 		return new MysqlColumn(
 			$key,
 			$default,
-			static fn($raw) => (bool) (((int) $raw) & 1)
+			new Behaviour(
+				static fn($raw) => (bool) $raw,
+				static fn($raw) => (bool) (((int) $raw) & 1)
+			)
 		);
 	}
 
@@ -28,7 +33,7 @@ class MysqlColumns {
 		return new MysqlIntegerColumn(
 			$key,
 			$default,
-			static fn($raw) => ((int) $raw),
+			Behaviour::int($signed),
 			$signed
 		);
 	}
@@ -43,7 +48,7 @@ class MysqlColumns {
 		return new MysqlColumn(
 			$key,
 			$default,
-			static fn($raw) => ((string) $raw)
+			Behaviour::string()
 		);
 	}
 
@@ -57,7 +62,7 @@ class MysqlColumns {
 		return new MysqlColumn(
 			$key,
 			$default,
-			static fn($raw) => ((array) $raw)
+			Behaviour::array()
 		);
 	}
 }

@@ -8,22 +8,29 @@ use LogicException;
 use think\DbManager;
 
 class AccountMetadataService {
-	public static function register(DbManager $db, string $xuid, string $name) : void {
-		$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-			->extra('IGNORE')
-			->insert([
+	public static function register(DbManager $db, ?string $xuid, string $name) : bool {
+		return ($db->transaction(static function() use ($name, $xuid, $db) {
+			$registered = !$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+				->where(SchemaConstants::COL_XUID, $xuid)
+				->where(SchemaConstants::COL_PLAYER_NAME, $name)
+				->select()->isEmpty();
+			if ($registered) {
+				return false;
+			}
+			$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)->insert([
 				SchemaConstants::COL_XUID => $xuid,
 				SchemaConstants::COL_LAST_MODIFIED_TIME => time(),
-				SchemaConstants::COL_DATA => '{"_":"_"}',
 				SchemaConstants::COL_PLAYER_NAME => $name,
 			]);
+			return true;
+		}));
 	}
 
 	public static function delete(DbManager $db, IdentifierProvider $id) : bool {
-		return $id($db, static fn(string $xuid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-			->where(SchemaConstants::COL_XUID, $xuid)
+		return $id($db, static fn(int $uid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+			->where(SchemaConstants::COL_UID, $uid)
 			->delete()
-			, false);
+		);
 	}
 
 	public static function getName(DbManager $db, string $xuid) : ?string {
@@ -48,12 +55,23 @@ class AccountMetadataService {
 		return array_pop($result);
 	}
 
+	public static function getUid(DbManager $db, ?string $xuid, string $name) : ?int {
+		$result = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+			->where(SchemaConstants::COL_XUID, $xuid)
+			->where(SchemaConstants::COL_PLAYER_NAME, $name)
+			->order(SchemaConstants::COL_LAST_MODIFIED_TIME, 'desc')
+			->column(SchemaConstants::COL_UID);
+		return array_pop($result);
+	}
+
 	/**
 	 * Return whether it has changed in the verification.
 	 */
-	public static function fixXuidNameAssociation(DbManager $db, string $xuid, string $name) : bool {
-		return $db->transaction(static function() use ($name, $xuid, $db) : bool {
-			self::register($db, $xuid, $name);
+	public static function fixXuidNameAssociation(DbManager $db, string $xuid, string $name, bool $register = false) : bool {
+		return $db->transaction(static function() use ($register, $name, $xuid, $db) : bool {
+			if ($register) {
+				self::register($db, $xuid, $name);
+			}
 			$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 				->where(SchemaConstants::COL_XUID, $xuid)
 				->where(SchemaConstants::COL_PLAYER_NAME, '<>', $name)

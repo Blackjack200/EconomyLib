@@ -2,6 +2,7 @@
 
 namespace blackjack200\economy\provider\await\holder;
 
+use blackjack200\economy\provider\next\impl\types\Identity;
 use Closure;
 use prokits\player\PracticePlayer;
 
@@ -10,7 +11,7 @@ use prokits\player\PracticePlayer;
  */
 class RegisteredRow {
 
-	/** @var null|Closure(PracticePlayer|string $player, TValue|null $oldValue, TValue|null $newValue):void $onUpdate */
+	/** @var null|Closure(PracticePlayer|Identity $player, TValue|null $oldValue, TValue|null $newValue):void $onUpdate */
 	public ?Closure $onUpdate = null;
 
 	public function __construct(

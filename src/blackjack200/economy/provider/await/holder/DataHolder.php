@@ -2,22 +2,27 @@
 
 namespace blackjack200\economy\provider\await\holder;
 
-use blackjack200\economy\provider\await\column\WeakOrStrongCache;
+use blackjack200\cache\CacheInterface;
+use blackjack200\cache\LRUCache;
 use blackjack200\economy\provider\next\AccountDataProxy;
+use blackjack200\economy\provider\next\impl\tools\BidirectionalIndexedDataVisitor;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
+use blackjack200\economy\provider\next\impl\types\Identity;
 use libasync\await\Await;
 use libasync\await\lock\rw\MutexRefCell;
 use prokits\player\PracticePlayer;
 
-class DataHolder {
+class DataHolder implements SharedDataHolder {
 	/** @var array<string,RegisteredRow> */
 	private static array $registered = [];
-	private static WeakOrStrongCache $cache;
+	/** @var CacheInterface<self> */
+	private static CacheInterface $cache;
 	/** @var MutexRefCell<array> */
 	private MutexRefCell $mappedData;
+	private float $lastSync = 0;
 
 	public function __construct(
-		private readonly PracticePlayer|string $owner
+		private readonly PracticePlayer|Identity $owner
 	) {
 		$this->mappedData = new MutexRefCell([]);
 	}
@@ -37,13 +42,15 @@ class DataHolder {
 		return self::$registered[$key] = new RegisteredRow($behaviour, $defaultValue);
 	}
 
-	public static function of(PracticePlayer|string $owner) : self {
-		self::$cache = new WeakOrStrongCache(PHP_INT_MAX, 512);
-		$v = self::$cache->get($owner);
-		if ($v === null) {
-			self::$cache->put($owner, new self($owner));
+	public static function of(PracticePlayer|Identity $owner) : self {
+		if (!isset(self::$cache)) {
+			self::$cache = new LRUCache(255);
 		}
-		return self::$cache->get($owner);
+		$hash = $owner->asIdentity()->hash();
+		if (!self::$cache->has($hash)) {
+			self::$cache->put($hash, new self($owner));
+		}
+		return self::$cache->get($hash);
 	}
 
 	public function get(string $key, bool $preferCache) {
@@ -55,8 +62,23 @@ class DataHolder {
 		return yield from $this->mappedData->get(static fn($value) => ($value[$key] ?? null));
 	}
 
+	public function readCached(string $key) {
+		if (array_key_exists($key, $this->mappedData->getLastWrite() ?? [])) {
+			return $this->mappedData[$key];
+		}
+		if (isset(self::$registered[$key])) {
+			return self::$registered[$key]->defaultValue;
+		}
+		throw new \InvalidArgumentException("key '$key' is not registered");
+	}
+
 	public function sync() {
-		return yield from $this->mappedData->set(function($set, $get) {
+		if ((microtime(true) - $this->lastSync) < 10) {
+			yield Await::suspend;
+			return;
+		}
+		$this->lastSync = microtime(true);
+		yield from $this->mappedData->set(function($set, $get) {
 			$data = yield from AccountDataProxy::getAll(IdentifierProvider::autoOrName($this->owner));
 			$rawData = $data ?? [];
 			$oldMappedData = $get();
@@ -75,7 +97,7 @@ class DataHolder {
 
 	public function set(string $key, $value, bool $optimistic) {
 		if ($optimistic) {
-			return yield from $this->mappedData->set(function($set, $get) use ($value, $key) {
+			yield from $this->mappedData->set(function($set, $get) use ($value, $key) {
 				$v = $get();
 				$v[$key] = $value;
 				$set($v);
@@ -98,7 +120,7 @@ class DataHolder {
 
 	public function unset(string $key, bool $optimistic) {
 		if ($optimistic) {
-			return yield from $this->mappedData->set(function($set, $get) use ($key) {
+			yield from $this->mappedData->set(function($set, $get) use ($key) {
 				$v = $get();
 				unset($v[$key]);
 				$set($v);
@@ -162,5 +184,13 @@ class DataHolder {
 		yield from $updateLocal();
 
 		return $success;
+	}
+
+	public static function dsort(string $key, int $limit) : \Generator|BidirectionalIndexedDataVisitor {
+		return yield from AccountDataProxy::sort($key, $limit, false);
+	}
+
+	public static function asort(string $key, int $limit) : \Generator|BidirectionalIndexedDataVisitor {
+		return yield from AccountDataProxy::sort($key, $limit, true);
 	}
 }

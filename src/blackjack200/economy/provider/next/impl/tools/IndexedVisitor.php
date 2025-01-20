@@ -2,6 +2,7 @@
 
 namespace blackjack200\economy\provider\next\impl\tools;
 
+use blackjack200\economy\provider\next\impl\types\Identity;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
 use Generator;
 
@@ -37,6 +38,18 @@ readonly final class IndexedVisitor {
 				break;
 			}
 			yield $col[SchemaConstants::COL_XUID] => $col[$this->key];
+		}
+	}
+
+	/**
+	 * @return Generator<void,Identity,scalar,void>
+	 */
+	public function index() : Generator {
+		foreach ($this->data as $col) {
+			if (!isset($col[$this->key])) {
+				break;
+			}
+			yield Identity::reuse($col[SchemaConstants::COL_PLAYER_NAME], $col[SchemaConstants::COL_XUID]) => $col[$this->key];
 		}
 	}
 }

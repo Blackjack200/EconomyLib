@@ -3,14 +3,17 @@ drop database xyron;
 create database xyron;
 use xyron;
 
-create table account_metadata
+create table account_metadata_temp
 (
-    xuid               varchar(128) unique not null,
-    last_modified_time bigint unsigned     not null,
-    player_name        varchar(16)         not null,
-    data               json,
-    primary key (xuid)
-) default charset = utf8;
+    uid                bigint unsigned auto_increment primary key unique,
+    xuid               varchar(128) unique             null,
+    last_modified_time bigint unsigned                 not null,
+    player_name        varchar(16)                     not null,
+    created_at         timestamp default current_timestamp() not null,
+    data               json      default json_object() not null,
+    constraint account
+        check (`xuid` is not null or `player_name` is not null)
+) charset = utf8;
 
 create table rank_registry
 (

@@ -2,6 +2,7 @@
 
 namespace blackjack200\economy\provider\await\column;
 
+use blackjack200\economy\provider\next\impl\types\Identity;
 use prokits\player\PracticePlayer;
 
 /**
@@ -11,12 +12,12 @@ interface Column extends ReadonlyCachedData {
 	public function getKey() : string;
 
 
-	public function reset(PracticePlayer|string $player) : \Generator;
+	public function reset(PracticePlayer|Identity $player) : \Generator;
 
 	/**
 	 * @param T $data
 	 */
-	public function set(PracticePlayer|string $player, $data) : \Generator|bool;
+	public function set(PracticePlayer|Identity $player, $data) : \Generator|bool;
 
-	public function delete(PracticePlayer|string $player) : \Generator|bool;
+	public function delete(PracticePlayer|Identity $player) : \Generator|bool;
 }

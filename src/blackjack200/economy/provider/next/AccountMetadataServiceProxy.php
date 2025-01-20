@@ -9,12 +9,12 @@ use Generator;
 use think\DbManager;
 
 /**
- * @method static Generator|void register(string $xuid, string $name)
+ * @method static Generator|bool register(string|null $xuid, string $name)
  * @method static Generator|bool delete(IdentifierProvider $id)
  * @method static Generator|string|null getName(string $xuid)
  * @method static Generator|string|null getXuid(string $name)
- * @method static Generator|bool fixXuidNameAssociation(string $xuid, string $name)
- * @method static Generator|array|null getAccountData(IdentifierProvider $id)
+ * @method static Generator|int|null getUid(string|null $xuid, string $name)
+ * @method static Generator|bool fixXuidNameAssociation(string $xuid, string $name, bool $register = false)
  **/
 class AccountMetadataServiceProxy {
 	public static function __callStatic(string $name, array $arguments) {

@@ -2,16 +2,17 @@
 
 namespace blackjack200\economy\provider\next\impl\types;
 
-use blackjack200\economy\provider\await\column\WeakOrStrongCache;
+use blackjack200\cache\CacheInterface;
+use blackjack200\cache\LRUCache;
 use Closure;
 use pmmp\thread\ThreadSafe;
-use pocketmine\player\XboxLivePlayerInfo;
 use prokits\player\PracticePlayer;
 use think\DbManager;
 
 final class IdentifierProvider extends ThreadSafe {
-	/** @var WeakOrStrongCache<PracticePlayer,string,self> */
-	private static WeakOrStrongCache $playerCache;
+	public const OFFLINE_SPECIFY_SUFFIX = '&offline';
+	/** @var CacheInterface<self> */
+	private static CacheInterface $playerCache;
 
 	private function __construct(private Closure $closure) { }
 
@@ -21,56 +22,67 @@ final class IdentifierProvider extends ThreadSafe {
 
 	public static function xuid(string $xuid) : self {
 		return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($xuid) {
-			return $other($xuid) ?? $default;
+			return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($xuid) {
+				$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+					->cache(true)
+					->where(SchemaConstants::COL_XUID, $xuid)
+					->limit(1)
+					->column(SchemaConstants::COL_UID);
+				if (count($eq) > 0) {
+					return $other($eq[array_key_first($eq)]);
+				}
+				\GlobalLogger::get()->debug("Couldn't find account for xuid $xuid.");
+				return $default;
+			});
 		});
 	}
 
-	public static function autoOrName(PracticePlayer|string $id) : self {
+	public static function autoOrName(PracticePlayer|Identity $id) : self {
 		if (!isset(self::$playerCache)) {
-			self::$playerCache = new WeakOrStrongCache(PHP_INT_MAX, 100);
+			self::$playerCache = new LRUCache(128);
 		}
-		if ($id instanceof PracticePlayer) {
-			$cc = self::$playerCache->get($id);
-			if ($cc !== null) {
-				return $cc;
-			}
-			$info = $id->getPlayerInfo();
-			if ($info instanceof XboxLivePlayerInfo) {
-				$provider = self::xuid($info->getXuid());
-			} else {
-				$provider = self::name($id->getName());
-			}
-			self::$playerCache->put($id, $provider);
-			return $provider;
-		}
-		$provider = self::$playerCache->get($id);
+		$id = $id->asIdentity();
+		$hash = $id->hash();
+		$provider = self::$playerCache->get($hash);
 		if ($provider !== null) {
 			return $provider;
 		}
-		$provider = self::name($id);
-
-		self::$playerCache->put($id, $provider);
+		if ($id->xuid !== null) {
+			$provider = self::xuid($id->xuid);
+		} else {
+			if (str_ends_with(mb_strtolower($id->name), self::OFFLINE_SPECIFY_SUFFIX)) {
+				$name = substr($id->name, 0, -strlen(self::OFFLINE_SPECIFY_SUFFIX));
+				$guessOnline = false;
+			} else {
+				$name = $id->name;
+				$guessOnline = true;
+			}
+			$provider = self::name($name, $guessOnline || !$id->xuidKnown);
+		}
+		self::$playerCache->put($hash, $provider);
 		return $provider;
 	}
 
-	public static function name(string $name) : self {
-		return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($name) {
-			return $db->transaction(static function() use ($default, $name, $db, $other) {
+	public static function name(string $name, bool $guessOnline) : self {
+		return new self(static function(DbManager $db, Closure $other, mixed $default = null) use ($guessOnline, $name) {
+			return $db->transaction(static function() use ($default, $guessOnline, $name, $db, $other) {
 				$eq = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-					->cache(5)
+					->cache(10);
+				if (!$guessOnline) {
+					$eq = $eq->whereNull(SchemaConstants::COL_XUID);
+				}
+				$eq = $eq
 					->where(SchemaConstants::COL_PLAYER_NAME, $name)
 					->order(SchemaConstants::COL_LAST_MODIFIED_TIME, 'desc')
 					->limit(1)
-					->column(SchemaConstants::COL_XUID);
-				/*if (count($eq) > 1) {
-					throw new LogicException("Name: $name should not be associated with " . var_export($eq, true));
-				}*/
+					->column(SchemaConstants::COL_UID);
 				if (count($eq) > 0) {
-					$xuid = array_shift($eq);
-					return $other($xuid);
+					return $other($eq[array_key_first($eq)]);
 				}
+				$p = $guessOnline ? 'online' : 'offline';
+				\GlobalLogger::get()->debug("Couldn't find account for $p player '$name'.");
 				return $default;
-			});
+			}) ?? $default;
 		});
 	}
 }
