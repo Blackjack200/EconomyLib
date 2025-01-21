@@ -8,7 +8,7 @@ use prokits\player\PracticePlayer;
 
 interface NumericColumn extends Column {
 
-	public function add(PracticePlayer|Identity $player, int $delta) : \Generator|bool;
+	public function add(PracticePlayer|Identity|string $player, int $delta) : \Generator|bool;
 
 	public function asort(int $limit) : \Generator|BidirectionalIndexedDataVisitor;
 

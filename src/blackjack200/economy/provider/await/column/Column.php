@@ -12,12 +12,12 @@ interface Column extends ReadonlyCachedData {
 	public function getKey() : string;
 
 
-	public function reset(PracticePlayer|Identity $player) : \Generator;
+	public function reset(PracticePlayer|Identity|string $player) : \Generator;
 
 	/**
 	 * @param T $data
 	 */
-	public function set(PracticePlayer|Identity $player, $data) : \Generator|bool;
+	public function set(PracticePlayer|Identity|string $player, $data) : \Generator|bool;
 
-	public function delete(PracticePlayer|Identity $player) : \Generator|bool;
+	public function delete(PracticePlayer|Identity|string $player) : \Generator|bool;
 }

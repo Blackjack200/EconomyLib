@@ -13,22 +13,22 @@ interface ReadonlyCachedData {
 	/**
 	 * @return T|\Generator
 	 */
-	public function getLatest(PracticePlayer|Identity $player);
+	public function getLatest(PracticePlayer|Identity|string $player);
 
 	/**
 	 * @return T|\Generator
 	 */
-	public function getCached(PracticePlayer|Identity $player);
+	public function getCached(PracticePlayer|Identity|string $player);
 
 	/**
 	 * @return T
 	 */
-	public function readCached(PracticePlayer|Identity $player);
+	public function readCached(PracticePlayer|Identity|string $player);
 
 	/**
 	 * @return T|\Generator
 	 */
-	public function getCachedKeepLatest(PracticePlayer|Identity $player);
+	public function getCachedKeepLatest(PracticePlayer|Identity|string $player);
 
-	public function refresh(PracticePlayer|Identity $player) : \Generator;
+	public function refresh(PracticePlayer|Identity|string $player) : \Generator;
 }

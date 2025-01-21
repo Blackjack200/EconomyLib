@@ -28,22 +28,22 @@ class MysqlColumn implements Column {
 		return $this->key;
 	}
 
-	public function reset(PracticePlayer|Identity $player) : Generator {
+	public function reset(PracticePlayer|Identity|string $player) : Generator {
 		$data = DataHolder::of($player);
 		return yield from $data->set($this->key, $this->default, false);
 	}
 
-	public function set(PracticePlayer|Identity $player, $value) : Generator|bool {
+	public function set(PracticePlayer|Identity|string $player, $value) : Generator|bool {
 		$data = DataHolder::of($player);
 		return yield from $data->set($this->key, $value, false);
 	}
 
-	public function delete(PracticePlayer|Identity $player) : Generator|bool {
+	public function delete(PracticePlayer|Identity|string $player) : Generator|bool {
 		$data = DataHolder::of($player);
 		return yield from $data->unset($this->key, false);
 	}
 
-	public function getLatest(PracticePlayer|Identity $player) {
+	public function getLatest(PracticePlayer|Identity|string $player) {
 		$data = DataHolder::of($player);
 		return yield from $data->get($this->key, false);
 	}
@@ -52,27 +52,27 @@ class MysqlColumn implements Column {
 	 * @deprecated
 	 * @see MysqlColumn::getLatest())
 	 */
-	public function get(PracticePlayer|Identity $player) {
+	public function get(PracticePlayer|Identity|string $player) {
 		return yield from $this->getLatest($player);
 	}
 
-	public function getCached(PracticePlayer|Identity $player) {
+	public function getCached(PracticePlayer|Identity|string $player) {
 		$data = DataHolder::of($player);
 		return yield from $data->get($this->key, true);
 	}
 
-	public function readCached(PracticePlayer|Identity $player) {
+	public function readCached(PracticePlayer|Identity|string $player) {
 		return DataHolder::of($player)->readCached($this->key);
 	}
 
-	public function getCachedKeepLatest(PracticePlayer|Identity $player) {
+	public function getCachedKeepLatest(PracticePlayer|Identity|string $player) {
 		$data = DataHolder::of($player);
 		Await::do(Await::f2c(static fn() => $data->sync()))->logError();
 		yield Await::suspend;
 		return $data->readCached($this->key);
 	}
 
-	public function refresh(PracticePlayer|Identity $player) : Generator {
+	public function refresh(PracticePlayer|Identity|string $player) : Generator {
 		$data = DataHolder::of($player);
 		yield from $data->sync();
 	}

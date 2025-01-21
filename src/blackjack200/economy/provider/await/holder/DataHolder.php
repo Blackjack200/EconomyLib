@@ -42,12 +42,18 @@ class DataHolder implements SharedDataHolder {
 		return self::$registered[$key] = new RegisteredRow($behaviour, $defaultValue);
 	}
 
-	public static function of(PracticePlayer|Identity $owner) : self {
+	public static function of(PracticePlayer|Identity|string $owner) : self {
+		if (is_string($owner)) {
+			$owner = new Identity($owner, null, false);
+		}
 		if (!isset(self::$cache)) {
 			self::$cache = new LRUCache(255);
 		}
 		$hash = $owner->asIdentity()->hash();
 		if (!self::$cache->has($hash)) {
+			if($owner instanceof Identity) {
+				$owner = clone $owner;
+			}
 			self::$cache->put($hash, new self($owner));
 		}
 		return self::$cache->get($hash);

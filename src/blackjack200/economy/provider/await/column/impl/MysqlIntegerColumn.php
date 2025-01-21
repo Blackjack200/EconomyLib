@@ -18,7 +18,7 @@ class MysqlIntegerColumn extends MysqlColumn implements NumericColumn {
 
 	public function isSigned() : bool { return $this->signed; }
 
-	public function add(PracticePlayer|Identity $player, int $delta) : Generator|bool {
+	public function add(PracticePlayer|Identity|string $player, int $delta) : Generator|bool {
 		return yield from DataHolder::of($player)->numericUpdate($this->key, $delta, $this->signed, false);
 	}
 
