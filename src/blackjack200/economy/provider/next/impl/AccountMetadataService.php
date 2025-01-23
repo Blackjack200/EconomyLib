@@ -10,10 +10,16 @@ use think\DbManager;
 class AccountMetadataService {
 	public static function register(DbManager $db, ?string $xuid, string $name) : bool {
 		return ($db->transaction(static function() use ($name, $xuid, $db) {
-			$registered = !$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
-				->where(SchemaConstants::COL_XUID, $xuid)
-				->where(SchemaConstants::COL_PLAYER_NAME, $name)
-				->select()->isEmpty();
+			if ($xuid !== null) {
+				$registered = !$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+					->where(SchemaConstants::COL_XUID, $xuid)
+					->select()->isEmpty();
+			} else {
+				$registered = !$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+					->where(SchemaConstants::COL_XUID, $xuid)
+					->where(SchemaConstants::COL_PLAYER_NAME, $name)
+					->select()->isEmpty();
+			}
 			if ($registered) {
 				return false;
 			}
