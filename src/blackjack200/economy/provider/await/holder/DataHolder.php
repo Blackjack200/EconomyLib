@@ -78,8 +78,8 @@ class DataHolder implements SharedDataHolder {
 		throw new \InvalidArgumentException("key '$key' is not registered");
 	}
 
-	public function sync() {
-		if ((microtime(true) - $this->lastSync) < 10) {
+	public function sync(bool $force = false) {
+		if (!$force && (microtime(true) - $this->lastSync) < 10) {
 			yield Await::suspend;
 			return;
 		}
@@ -114,9 +114,16 @@ class DataHolder implements SharedDataHolder {
 		$success = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($this->owner), $key, $encoded);
 		if ($success) {
 			yield from $this->mappedData->set(function($set, $get) use ($value, $key) {
-				$v = $get();
-				$v[$key] = $value;
-				$set($v);
+				$oldMappedData = $get();
+				$row = self::$registered[$key] ?? null;
+				if ($row !== null) {
+					$oldValue = $oldMappedData[$key] ?? null;
+					if ($value !== $oldValue && $row->onUpdate !== null) {
+						($row->onUpdate)($this->owner, $oldValue, $value);
+					}
+				}
+				$oldMappedData[$key] = $value;
+				$set($oldMappedData);
 			});
 		} else {
 			yield from $this->sync();
@@ -125,21 +132,25 @@ class DataHolder implements SharedDataHolder {
 	}
 
 	public function unset(string $key, bool $optimistic) {
+		$commit = fn() => $this->mappedData->set(function($set, $get) use ($key) {
+			$v = $get();
+			$oldValue = $v[$key] ?? null;
+			unset($v[$key]);
+
+			$row = self::$registered[$key] ?? null;
+			if ($row !== null && $row->onUpdate !== null) {
+				($row->onUpdate)($this->owner, $oldValue, null);
+			}
+
+			$set($v);
+			return true;
+		});
 		if ($optimistic) {
-			yield from $this->mappedData->set(function($set, $get) use ($key) {
-				$v = $get();
-				unset($v[$key]);
-				$set($v);
-				return true;
-			});
+			yield from $commit();
 		}
 		$success = yield from AccountDataProxy::delete(IdentifierProvider::autoOrName($this->owner), $key);
 		if ($success) {
-			yield from $this->mappedData->set(function($set, $get) use ($key) {
-				$v = $get();
-				unset($v[$key]);
-				$set($v);
-			});
+			yield from $commit();
 		} else {
 			yield from $this->sync();
 		}
@@ -150,7 +161,14 @@ class DataHolder implements SharedDataHolder {
 		$updateLocal = fn() => $this->mappedData->trySet(function($set, $get) use ($operator, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
-				$v[$key] = $operator($v[$key]);
+				$oldValue = $v[$key];
+				$v[$key] = $newValue = $operator($v[$key]);
+
+				$row = self::$registered[$key] ?? null;
+				if ($row !== null && $newValue !== $oldValue && $row->onUpdate !== null) {
+					($row->onUpdate)($this->owner, $oldValue, $newValue);
+				}
+
 				$set($v);
 			}
 		});
@@ -176,8 +194,14 @@ class DataHolder implements SharedDataHolder {
 		$updateLocal = fn() => $this->mappedData->trySet(function($set, $get) use ($delta, $signed, $key) {
 			$v = $get();
 			if ($v !== null && isset($v[$key])) {
-				$v[$key] = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);
+				$oldValue = $v[$key];
+				$v[$key] = $newValue = max($signed ? PHP_INT_MIN : 0, $v[$key] + $delta);
 				$set($v);
+
+				$row = self::$registered[$key] ?? null;
+				if ($row !== null && $newValue !== $oldValue && $row->onUpdate !== null) {
+					($row->onUpdate)($this->owner, $oldValue, $newValue);
+				}
 			}
 		});
 
