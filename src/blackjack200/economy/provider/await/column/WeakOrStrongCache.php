@@ -3,7 +3,7 @@
 namespace blackjack200\economy\provider\await\column;
 
 use blackjack200\cache\CacheInterface;
-use blackjack200\cache\MemoryCache;
+use blackjack200\cache\LRUCache;
 use WeakMap;
 
 /**
@@ -22,7 +22,7 @@ class WeakOrStrongCache {
 		private readonly int $lruCapacity,
 	) {
 		$this->weak = new WeakMap();
-		$this->strong = new MemoryCache();
+		$this->strong = new LRUCache($this->lruCapacity);
 	}
 
 	/**
