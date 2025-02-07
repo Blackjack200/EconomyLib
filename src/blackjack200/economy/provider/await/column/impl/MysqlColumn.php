@@ -6,6 +6,7 @@ use blackjack200\economy\provider\await\column\Column;
 use blackjack200\economy\provider\await\holder\Behaviour;
 use blackjack200\economy\provider\await\holder\DataHolder;
 use blackjack200\economy\provider\next\impl\types\Identity;
+use blackjack200\economy\provider\UpdateResult;
 use Generator;
 use libasync\await\Await;
 use prokits\player\PracticePlayer;
@@ -33,12 +34,12 @@ class MysqlColumn implements Column {
 		return yield from $data->set($this->key, $this->default, false);
 	}
 
-	public function set(PracticePlayer|Identity|string $player, $value) : Generator|bool {
+	public function set(PracticePlayer|Identity|string $player, $value) : Generator|UpdateResult {
 		$data = DataHolder::of($player);
 		return yield from $data->set($this->key, $value, false);
 	}
 
-	public function delete(PracticePlayer|Identity|string $player) : Generator|bool {
+	public function delete(PracticePlayer|Identity|string $player) : Generator|UpdateResult {
 		$data = DataHolder::of($player);
 		return yield from $data->unset($this->key, false);
 	}

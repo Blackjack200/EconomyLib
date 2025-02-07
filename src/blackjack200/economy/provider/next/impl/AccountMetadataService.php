@@ -4,11 +4,11 @@ namespace blackjack200\economy\provider\next\impl;
 
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
-use LogicException;
+use blackjack200\economy\provider\UpdateResult;
 use think\DbManager;
 
 class AccountMetadataService {
-	public static function register(DbManager $db, ?string $xuid, string $name) : bool {
+	public static function register(DbManager $db, ?string $xuid, string $name) : UpdateResult {
 		return ($db->transaction(static function() use ($name, $xuid, $db) {
 			if ($xuid !== null) {
 				$registered = !$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
@@ -21,22 +21,22 @@ class AccountMetadataService {
 					->select()->isEmpty();
 			}
 			if ($registered) {
-				return false;
+				return UpdateResult::NO_CHANGE;
 			}
-			$db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)->insert([
+			$insertedRow = $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)->insert([
 				SchemaConstants::COL_XUID => $xuid,
 				SchemaConstants::COL_LAST_MODIFIED_TIME => time(),
 				SchemaConstants::COL_PLAYER_NAME => $name,
 			]);
-			return true;
+			return UpdateResult::fromRow($insertedRow);
 		}));
 	}
 
-	public static function delete(DbManager $db, IdentifierProvider $id) : bool {
-		return $id($db, static fn(int $uid) => $db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
+	public static function delete(DbManager $db, IdentifierProvider $id) : UpdateResult {
+		return $id($db, static fn(int $uid) => UpdateResult::fromRow($db->table(SchemaConstants::TABLE_ACCOUNT_METADATA)
 			->where(SchemaConstants::COL_UID, $uid)
 			->delete()
-		);
+		), UpdateResult::INTERNAL_ERROR);
 	}
 
 	public static function getName(DbManager $db, string $xuid) : ?string {
@@ -73,8 +73,8 @@ class AccountMetadataService {
 	/**
 	 * Return whether it has changed in the verification.
 	 */
-	public static function fixXuidNameAssociation(DbManager $db, string $xuid, string $name, bool $register = false) : bool {
-		return $db->transaction(static function() use ($register, $name, $xuid, $db) : bool {
+	public static function fixXuidNameAssociation(DbManager $db, string $xuid, string $name, bool $register = false) : UpdateResult {
+		return $db->transaction(static function() use ($register, $name, $xuid, $db) : UpdateResult {
 			if ($register) {
 				self::register($db, $xuid, $name);
 			}
@@ -89,12 +89,9 @@ class AccountMetadataService {
 						SchemaConstants::COL_PLAYER_NAME => $name,
 						SchemaConstants::COL_LAST_MODIFIED_TIME => time(),
 					]);
-				if ($r === 1) {
-					return true;
-				}
-				throw new LogicException("Something wrong has happened.");
+				return UpdateResult::fromRow($r);
 			}
-			return false;
+			return UpdateResult::NO_CHANGE;
 		});
 	}
 }

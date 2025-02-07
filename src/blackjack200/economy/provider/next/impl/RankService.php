@@ -4,6 +4,7 @@ namespace blackjack200\economy\provider\next\impl;
 
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use blackjack200\economy\provider\next\impl\types\SchemaConstants;
+use blackjack200\economy\provider\UpdateResult;
 use LogicException;
 use think\db\Raw;
 use think\DbManager;
@@ -13,7 +14,7 @@ class RankService {
 		return $db->table(SchemaConstants::TABLE_RANK_REG)->column(SchemaConstants::COL_RANK_DISPLAY, SchemaConstants::COL_RANK_BASENAME);
 	}
 
-	public static function register(DbManager $db, string $basename, string $display) : bool {
+	public static function register(DbManager $db, string $basename, string $display) : UpdateResult {
 		return $db->transaction(static function() use ($display, $basename, $db) {
 			$result = $db->table(SchemaConstants::TABLE_RANK_REG)
 				->where(SchemaConstants::COL_RANK_BASENAME, $basename)
@@ -25,17 +26,17 @@ class RankService {
 				if ($updated > 1) {
 					throw new LogicException("This should never happens. $basename '$display' $updated");
 				}
-				return false;
+				return UpdateResult::fromRow($updated);
 			}
-			return $db->table(SchemaConstants::TABLE_RANK_REG)->insert([
+			return UpdateResult::fromRow($db->table(SchemaConstants::TABLE_RANK_REG)->insert([
 				SchemaConstants::COL_RANK_BASENAME => $basename,
 				SchemaConstants::COL_RANK_DISPLAY => $display,
-			]);
+			]));
 		});
 	}
 
-	public static function set(DbManager $db, string $basename, string $newDisplay) : bool {
-		return $db->transaction(static function() use ($newDisplay, $db, $basename) : bool {
+	public static function set(DbManager $db, string $basename, string $newDisplay) : UpdateResult {
+		return $db->transaction(static function() use ($newDisplay, $db, $basename) : UpdateResult {
 			$rankExists = $db->table(SchemaConstants::TABLE_RANK_REG)
 				->where(SchemaConstants::COL_RANK_BASENAME, $basename)
 				->select()
@@ -44,22 +45,22 @@ class RankService {
 				throw new LogicException("This should never happens. Rank $basename, count($rankExists)");
 			}
 			if ($rankExists !== 0) {
-				return $db->table(SchemaConstants::TABLE_RANK_REG)
+				return UpdateResult::fromRow($db->table(SchemaConstants::TABLE_RANK_REG)
 					->where(SchemaConstants::COL_RANK_BASENAME, $basename)
-					->update([SchemaConstants::COL_RANK_DISPLAY => $newDisplay]);
+					->update([SchemaConstants::COL_RANK_DISPLAY => $newDisplay]));
 			}
-			return false;
+			return UpdateResult::NO_CHANGE;
 		});
 	}
 
-	public static function unregister(DbManager $db, string $basename) : bool {
-		return $db->table(SchemaConstants::TABLE_RANK_REG)
+	public static function unregister(DbManager $db, string $basename) : UpdateResult {
+		return UpdateResult::fromRow($db->table(SchemaConstants::TABLE_RANK_REG)
 			->where(SchemaConstants::COL_RANK_BASENAME, $basename)
-			->delete();
+			->delete());
 	}
 
-	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, int $deadline) : bool {
-		return $id($db, static function(int $uid) use ($deadline, $rankBasename, $db) : bool {
+	public static function addRankToPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename, int $deadline) : UpdateResult {
+		return $id($db, static function(int $uid) use ($deadline, $rankBasename, $db) : UpdateResult {
 			$xuid = new Raw(sprintf("(select %s from %s where uid=$uid limit 1)", SchemaConstants::COL_XUID, SchemaConstants::TABLE_ACCOUNT_METADATA));
 			$result = $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 				->where(SchemaConstants::COL_XUID, $xuid)
@@ -73,32 +74,32 @@ class RankService {
 			}
 			if (count($rankExists) === 1) {
 				if (count($result) === 0) {
-					return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+					return UpdateResult::fromRow($db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 						->insert([
 							SchemaConstants::COL_XUID => $xuid,
 							SchemaConstants::COL_RANK_BASENAME => $rankBasename,
 							SchemaConstants::COL_RANK_DEADLINE => $deadline,
-						]);
+						]));
 				}
-				return $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+				return UpdateResult::fromRow($db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 					->where(SchemaConstants::COL_XUID, $xuid)
 					->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
 					->update([
 						SchemaConstants::COL_XUID => $xuid,
 						SchemaConstants::COL_RANK_BASENAME => $rankBasename,
 						SchemaConstants::COL_RANK_DEADLINE => $deadline,
-					]);
+					]));
 			}
-			return false;
-		}, false);
+			return UpdateResult::NO_CHANGE;
+		}, UpdateResult::INTERNAL_ERROR);
 	}
 
-	public static function removeRankFromPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename) : bool {
-		return $id($db, static fn(int $uid) => $db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
+	public static function removeRankFromPlayer(DbManager $db, IdentifierProvider $id, string $rankBasename) : UpdateResult {
+		return $id($db, static fn(int $uid) => UpdateResult::fromRow($db->table(SchemaConstants::TABLE_RANK_PLAYER_DATA)
 			->where(SchemaConstants::COL_XUID, new Raw(sprintf("(select %s from %s where uid=$uid limit 1)", SchemaConstants::COL_XUID, SchemaConstants::TABLE_ACCOUNT_METADATA)))
 			->where(SchemaConstants::COL_RANK_BASENAME, $rankBasename)
-			->delete()
-			, false);
+			->delete())
+			, UpdateResult::INTERNAL_ERROR);
 	}
 
 	/**

@@ -21,7 +21,7 @@ readonly final class BidirectionalIndexedDataVisitor {
 	}
 
 	/**
-	 * @return Generator<void,string,T,void>
+	 * @return Generator<string,T,void,void>
 	 */
 	public function indexByName() : Generator {
 		foreach ($this->data as $col) {
@@ -33,7 +33,7 @@ readonly final class BidirectionalIndexedDataVisitor {
 	}
 
 	/**
-	 * @return Generator<void,string,T,void>
+	 * @return Generator<string,T,void,void>
 	 */
 	public function indexByXuid() : Generator {
 		foreach ($this->data as $col) {
@@ -45,7 +45,7 @@ readonly final class BidirectionalIndexedDataVisitor {
 	}
 
 	/**
-	 * @return Generator<void,Identity,scalar,void>
+	 * @return Generator<Identity,scalar,void,void>
 	 */
 	public function index() : Generator {
 		foreach ($this->data as $col) {

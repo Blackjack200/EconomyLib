@@ -18,7 +18,7 @@ readonly final class IndexedVisitor {
 	}
 
 	/**
-	 * @return Generator<void,string,scalar,void>
+	 * @return Generator<string,scalar,void,void>
 	 */
 	public function indexByName() : Generator {
 		foreach ($this->data as $col) {
@@ -30,7 +30,7 @@ readonly final class IndexedVisitor {
 	}
 
 	/**
-	 * @return Generator<void,string,scalar,void>
+	 * @return Generator<string,scalar,void,void>
 	 */
 	public function indexByXuid() : Generator {
 		foreach ($this->data as $col) {
@@ -42,7 +42,7 @@ readonly final class IndexedVisitor {
 	}
 
 	/**
-	 * @return Generator<void,Identity,scalar,void>
+	 * @return Generator<Identity,scalar,void,void>
 	 */
 	public function index() : Generator {
 		foreach ($this->data as $col) {

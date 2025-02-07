@@ -8,8 +8,10 @@ use blackjack200\economy\provider\next\AccountDataProxy;
 use blackjack200\economy\provider\next\impl\tools\BidirectionalIndexedDataVisitor;
 use blackjack200\economy\provider\next\impl\types\IdentifierProvider;
 use blackjack200\economy\provider\next\impl\types\Identity;
+use blackjack200\economy\provider\UpdateResult;
 use libasync\await\Await;
 use libasync\await\lock\rw\MutexRefCell;
+use pocketmine\utils\Utils;
 use prokits\player\PracticePlayer;
 
 class DataHolder implements SharedDataHolder {
@@ -89,7 +91,7 @@ class DataHolder implements SharedDataHolder {
 			$rawData = $data ?? [];
 			$oldMappedData = $get();
 			$newMappedData = [];
-			foreach (self::$registered as $key => $row) {
+			foreach (Utils::stringifyKeys(self::$registered) as $key => $row) {
 				$oldValue = $oldMappedData[$key] ?? null;
 				$newValue = ($row->behaviour->decoder)($rawData[$key] ?? null);
 				if ($newValue !== $oldValue && $row->onUpdate !== null) {
@@ -107,12 +109,12 @@ class DataHolder implements SharedDataHolder {
 				$v = $get();
 				$v[$key] = $value;
 				$set($v);
-				return true;
+				return UpdateResult::SUCCESS;
 			});
 		}
 		$encoded = isset(self::$registered[$key]) ? (self::$registered[$key]->behaviour->encoder)($value) : $value;
-		$success = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($this->owner), $key, $encoded);
-		if ($success) {
+		$result = yield from AccountDataProxy::set(IdentifierProvider::autoOrName($this->owner), $key, $encoded);
+		if ($result === UpdateResult::SUCCESS) {
 			yield from $this->mappedData->set(function($set, $get) use ($value, $key) {
 				$oldMappedData = $get();
 				$row = self::$registered[$key] ?? null;
@@ -125,10 +127,10 @@ class DataHolder implements SharedDataHolder {
 				$oldMappedData[$key] = $value;
 				$set($oldMappedData);
 			});
-		} else {
+		} else if ($result === UpdateResult::INTERNAL_ERROR) {
 			yield from $this->sync();
 		}
-		return $success;
+		return $result;
 	}
 
 	public function unset(string $key, bool $optimistic) {
@@ -143,18 +145,18 @@ class DataHolder implements SharedDataHolder {
 			}
 
 			$set($v);
-			return true;
+			return UpdateResult::SUCCESS;
 		});
 		if ($optimistic) {
 			yield from $commit();
 		}
-		$success = yield from AccountDataProxy::delete(IdentifierProvider::autoOrName($this->owner), $key);
-		if ($success) {
+		$result = yield from AccountDataProxy::delete(IdentifierProvider::autoOrName($this->owner), $key);
+		if ($result === UpdateResult::SUCCESS) {
 			yield from $commit();
-		} else {
+		} else if ($result === UpdateResult::INTERNAL_ERROR) {
 			yield from $this->sync();
 		}
-		return $success;
+		return $result;
 	}
 
 	public function update(string $key, \Closure $operator, bool $optimistic) {
@@ -180,13 +182,13 @@ class DataHolder implements SharedDataHolder {
 			$newValue = $operator($behavior !== null ? ($behavior->decoder)($old) : null);
 			return $behavior !== null ? ($behavior->encoder)($newValue) : $newValue;
 		};
-		$success = yield from AccountDataProxy::update(IdentifierProvider::autoOrName($this->owner), $key, $proxiedOperator);
-		if ($success) {
+		$result = yield from AccountDataProxy::update(IdentifierProvider::autoOrName($this->owner), $key, $proxiedOperator);
+		if ($result === UpdateResult::SUCCESS) {
 			yield from $updateLocal();
-		} else {
+		} else if ($result === UpdateResult::INTERNAL_ERROR) {
 			yield from $this->sync();
 		}
-		return $success;
+		return $result;
 	}
 
 
@@ -209,11 +211,15 @@ class DataHolder implements SharedDataHolder {
 			yield from $updateLocal();
 		}
 
-		$success = yield from AccountDataProxy::numericDelta(IdentifierProvider::autoOrName($this->owner), $key, $delta, $signed);
+		$result = yield from AccountDataProxy::numericDelta(IdentifierProvider::autoOrName($this->owner), $key, $delta, $signed);
 
-		yield from $updateLocal();
+		if ($result === UpdateResult::SUCCESS) {
+			yield from $updateLocal();
+		} else if ($result === UpdateResult::INTERNAL_ERROR) {
+			yield from $this->sync();
+		}
 
-		return $success;
+		return $result;
 	}
 
 	public static function dsort(string $key, int $limit) : \Generator|BidirectionalIndexedDataVisitor {
