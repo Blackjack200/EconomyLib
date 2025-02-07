@@ -81,7 +81,7 @@ class DataHolder implements SharedDataHolder {
 	}
 
 	public function sync(bool $force = false) {
-		if (!$force && (microtime(true) - $this->lastSync) < 10) {
+		if (!$force && (microtime(true) - $this->lastSync) < 5) {
 			yield Await::suspend;
 			return;
 		}
@@ -107,7 +107,14 @@ class DataHolder implements SharedDataHolder {
 		if ($optimistic) {
 			yield from $this->mappedData->set(function($set, $get) use ($value, $key) {
 				$v = $get();
+				$oldValue = $v[$key] ?? null;
 				$v[$key] = $value;
+
+				$row = self::$registered[$key] ?? null;
+				if ($row !== null && $value !== $oldValue && $row->onUpdate !== null) {
+					($row->onUpdate)($this->owner, $oldValue, $value);
+				}
+
 				$set($v);
 				return UpdateResult::SUCCESS;
 			});
