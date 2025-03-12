@@ -3,7 +3,7 @@ drop database xyron;
 create database xyron;
 use xyron;
 
-create table account_metadata_temp
+create table account_metadata
 (
     uid                bigint unsigned auto_increment primary key unique,
     xuid               varchar(128) unique             null,
