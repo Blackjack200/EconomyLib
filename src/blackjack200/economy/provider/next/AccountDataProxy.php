@@ -12,6 +12,12 @@ use Generator;
 use think\DbManager;
 
 /**
+ *  AccountDataProxy
+ *
+ *  A generator-based proxy for accessing and manipulating account data. Supports fine-grained
+ *  operations such as atomic updates, numeric deltas, batch updates, and data sorting. All
+ *  calls are proxied to the `AccountDataService` via `EconomyLoader`.
+ *
  * @method static Generator|array|null getAll(IdentifierProvider $id)
  * @method static Generator|UpdateResult setAll(IdentifierProvider $id, $raw)
  * @method static Generator|UpdateResult set(IdentifierProvider $id, string $key, $value)

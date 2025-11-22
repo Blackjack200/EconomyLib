@@ -10,6 +10,18 @@ use Generator;
 use think\DbManager;
 
 /**
+ * RankServiceProxy
+ *
+ * A proxy class for interacting with rank-related services in an asynchronous, generator-based
+ * style. All static calls are proxied through the `EconomyLoader` to access the underlying
+ * database service (`RankService`).
+ *
+ * # Example
+ *
+ * ```
+ * $result = yield from RankServiceProxy::register("admin", "Administrator");
+ * ```
+ *
  * @method static Generator|string[] getRegistered()
  * @method static Generator|UpdateResult register(string $basename, string $display)
  * @method static Generator|UpdateResult set(string $basename, string $newDisplay)

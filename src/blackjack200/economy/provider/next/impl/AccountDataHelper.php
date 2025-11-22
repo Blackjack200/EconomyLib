@@ -2,6 +2,9 @@
 
 namespace blackjack200\economy\provider\next\impl;
 
+/**
+ * @internal
+ */
 final class AccountDataHelper {
 	private function __construct() { }
 

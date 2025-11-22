@@ -10,6 +10,12 @@ use Generator;
 use think\DbManager;
 
 /**
+ *  AccountMetadataServiceProxy
+ *
+ *  Provides generator-based access to account metadata management, such as mapping between
+ *  XUIDs, player names, and internal IDs. All operations are executed via `EconomyLoader` and
+ *  proxied to the underlying `AccountMetadataService`.
+ *
  * @method static Generator|UpdateResult register(string|null $xuid, string $name)
  * @method static Generator|UpdateResult delete(IdentifierProvider $id)
  * @method static Generator|string|null getName(string $xuid)

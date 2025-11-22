@@ -1,0 +1,19 @@
+{
+  "default": "mysql",
+  "connections": {
+    "mysql": {
+      "type": "mysql",
+      "hostname": "",
+      "username": "",
+      "database": "",
+      "password": "",
+      "hostport": 11451,
+      "charset": "utf8",
+      "fields_cache": true,
+      "break_reconnect": true,
+      "params": {
+        "12": true
+      }
+    }
+  }
+}

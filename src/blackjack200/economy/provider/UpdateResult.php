@@ -2,6 +2,26 @@
 
 namespace blackjack200\economy\provider;
 
+/**
+ * UpdateResult enum
+ *
+ * Represents the possible outcomes of a storage operation.
+ *
+ * # Variants
+ *
+ * - `SUCCESS`: Operation completed successfully.
+ * - `NO_CHANGE`: Operation did not modify any value.
+ * - `INTERNAL_ERROR`: Operation failed due to an internal error.
+ *
+ * # Methods
+ *
+ * - `fromRow(int $affectedRow)`: Construct an `UpdateResult` from the number of affected
+ *   rows in a database operation.
+ *
+ * - `failed()`: Returns `true` if the operation did not succeed (`NO_CHANGE` or `INTERNAL_ERROR`).
+ *
+ * - `success()`: Returns `true` if the operation was successful (`SUCCESS`).
+ */
 enum UpdateResult: string {
 	case SUCCESS = "success";
 	case NO_CHANGE = 'no_change';
